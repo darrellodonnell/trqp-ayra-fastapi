@@ -91,9 +91,9 @@ class AuthorizationResponseAdmin(BaseModel):
 
 class EntityCreate(BaseModel):
     entity_did: str = Field(..., description="DID URI of the entity")
-    authority_id: str = Field(..., description="DID of the authority/ecosystem")
+    authority_id: Optional[str] = Field(None, description="DID of the authority/ecosystem (optional for root ecosystems)")
     name: Optional[str] = Field(None, description="Human-readable name")
-    entity_type: Optional[str] = Field(None, description="Type of entity (organization, person, etc.)")
+    entity_type: Optional[str] = Field(None, description="Type of entity (ecosystem, organization, person, etc.)")
     status: str = Field("active", description="Status (active, inactive, suspended)")
     description: Optional[str] = Field(None, description="Description of the entity")
     authorization_ids: Optional[List[int]] = Field(None, description="List of authorization IDs")
@@ -112,7 +112,7 @@ class EntityUpdate(BaseModel):
 class EntityResponse(BaseModel):
     id: int
     entity_did: str
-    authority_id: str
+    authority_id: Optional[str]
     name: Optional[str]
     entity_type: Optional[str]
     status: str
@@ -173,6 +173,15 @@ async def save_registry_config(config: RegistryConfigCreate, db: Session = Depen
             raise HTTPException(status_code=400, detail="authority_id must be a valid DID URI")
         if config.egf_id and not config.egf_id.startswith("did:"):
             raise HTTPException(status_code=400, detail="egf_id must be a valid DID URI")
+
+        # Validate that authority_id exists as an active ecosystem entity
+        authority_entity = crud.get_entity_by_did(db, config.authority_id)
+        if not authority_entity:
+            raise HTTPException(status_code=400, detail="authority_id must reference an existing entity")
+        if authority_entity.status != "active":
+            raise HTTPException(status_code=400, detail="authority_id must reference an active entity")
+        if authority_entity.entity_type != "ecosystem":
+            raise HTTPException(status_code=400, detail="authority_id must reference an ecosystem entity")
 
         # Delete existing config and insert new one (simple upsert)
         db.execute(text("DELETE FROM registry_config"))
@@ -315,6 +324,23 @@ async def delete_authorization(auth_id: int, db: Session = Depends(get_db)):
 
 
 # Entities Management
+@router.get("/entities/active-authorities", response_model=List[dict])
+async def list_active_authorities(db: Session = Depends(get_db)):
+    """List all active ecosystem entities that can be used as authorities"""
+    entities = db.query(crud.Entity).filter(
+        crud.Entity.status == "active",
+        crud.Entity.entity_type == "ecosystem"
+    ).all()
+    return [
+        {
+            "id": e.id,
+            "entity_did": e.entity_did,
+            "name": e.name or e.entity_did
+        }
+        for e in entities
+    ]
+
+
 @router.get("/entities", response_model=List[EntityResponse])
 async def list_entities(authority_id: Optional[str] = None, db: Session = Depends(get_db)):
     """List all entities, optionally filtered by authority"""
@@ -334,16 +360,32 @@ async def get_entity(entity_id: int, db: Session = Depends(get_db)):
 async def create_entity(entity: EntityCreate, db: Session = Depends(get_db)):
     """Create a new entity with authorizations"""
     try:
-        # Validate that entity_did and authority_id are DIDs
+        # Validate that entity_did is a DID
         if not entity.entity_did.startswith("did:"):
             raise HTTPException(status_code=400, detail="entity_did must be a valid DID URI")
-        if not entity.authority_id.startswith("did:"):
-            raise HTTPException(status_code=400, detail="authority_id must be a valid DID URI")
 
         # Check if entity already exists
         existing = crud.get_entity_by_did(db, entity.entity_did)
         if existing:
             raise HTTPException(status_code=400, detail="Entity with this DID already exists")
+
+        # Validate authority_id if provided
+        if entity.authority_id:
+            # authority_id must be a valid DID
+            if not entity.authority_id.startswith("did:"):
+                raise HTTPException(status_code=400, detail="authority_id must be a valid DID URI")
+
+            # Validate that authority_id exists as an active ecosystem entity
+            authority_entity = crud.get_entity_by_did(db, entity.authority_id)
+            if not authority_entity:
+                raise HTTPException(status_code=400, detail="authority_id must reference an existing entity")
+            if authority_entity.status != "active":
+                raise HTTPException(status_code=400, detail="authority_id must reference an active entity")
+            if authority_entity.entity_type != "ecosystem":
+                raise HTTPException(status_code=400, detail="authority_id must reference an ecosystem entity")
+        elif entity.entity_type != "ecosystem":
+            # Non-ecosystem entities must have an authority
+            raise HTTPException(status_code=400, detail="Non-ecosystem entities must have an authority_id")
 
         return crud.create_entity(
             db,
@@ -365,13 +407,42 @@ async def create_entity(entity: EntityCreate, db: Session = Depends(get_db)):
 async def update_entity(entity_id: int, entity: EntityUpdate, db: Session = Depends(get_db)):
     """Update an entity"""
     try:
+        # Get entity data including only fields that were explicitly set
+        entity_data = entity.dict(exclude_unset=True)
+
         # Validate DIDs if provided
         if entity.entity_did and not entity.entity_did.startswith("did:"):
             raise HTTPException(status_code=400, detail="entity_did must be a valid DID URI")
-        if entity.authority_id and not entity.authority_id.startswith("did:"):
-            raise HTTPException(status_code=400, detail="authority_id must be a valid DID URI")
 
-        updated = crud.update_entity(db, entity_id, **entity.dict(exclude_unset=True))
+        # Validate authority_id if it's being changed
+        if "authority_id" in entity_data:
+            if entity_data["authority_id"]:  # Has a value (not None or empty string)
+                # authority_id must be a valid DID
+                if not entity_data["authority_id"].startswith("did:"):
+                    raise HTTPException(status_code=400, detail="authority_id must be a valid DID URI")
+
+                # Validate that authority_id exists as an active ecosystem entity
+                authority_entity = crud.get_entity_by_did(db, entity_data["authority_id"])
+                if not authority_entity:
+                    raise HTTPException(status_code=400, detail="authority_id must reference an existing entity")
+                if authority_entity.status != "active":
+                    raise HTTPException(status_code=400, detail="authority_id must reference an active entity")
+                if authority_entity.entity_type != "ecosystem":
+                    raise HTTPException(status_code=400, detail="authority_id must reference an ecosystem entity")
+            else:
+                # Removing authority (setting to None) - get current entity to check if it's an ecosystem
+                current_entity = crud.get_entity(db, entity_id)
+                if not current_entity:
+                    raise HTTPException(status_code=404, detail="Entity not found")
+
+                # Determine the entity type to use for validation
+                # If entity_type is being updated, use the new type; otherwise use the current type
+                entity_type_for_validation = entity_data.get("entity_type", current_entity.entity_type)
+
+                if entity_type_for_validation != "ecosystem":
+                    raise HTTPException(status_code=400, detail="Non-ecosystem entities must have an authority_id")
+
+        updated = crud.update_entity(db, entity_id, **entity_data)
         if not updated:
             raise HTTPException(status_code=404, detail="Entity not found")
         return updated

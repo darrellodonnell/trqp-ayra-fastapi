@@ -255,7 +255,7 @@
 
         #entities-list table td:nth-child(7),
         #entities-list table th:nth-child(7) {
-            width: 16%;
+            width: 20%;
         }
 
         table td {
@@ -516,8 +516,10 @@
                 <form id="registry-config-form">
                     <div class="form-group">
                         <label for="config-authority-id">Default Authority ID (DID) *</label>
-                        <input type="text" id="config-authority-id" placeholder="did:example:ecosystem456" required>
-                        <small style="color: #666;">This DID will be the default authority for entities</small>
+                        <select id="config-authority-id" required>
+                            <option value="">Select an active entity as authority...</option>
+                        </select>
+                        <small style="color: #666;">Must be an existing active entity</small>
                     </div>
                     <div class="form-group">
                         <label for="config-egf-id">Ecosystem Governance Framework ID (DID)</label>
@@ -642,8 +644,10 @@
                     </div>
                     <div class="form-group">
                         <label for="entity-authority">Authority DID</label>
-                        <input type="text" id="entity-authority" placeholder="Uses default from Registry Config if empty">
-                        <small style="color: #666;">Leave empty to use the default authority from Registry Config</small>
+                        <select id="entity-authority">
+                            <option value="">None (for root ecosystems only)</option>
+                        </select>
+                        <small style="color: #666;">Optional for ecosystem entities; required for all others</small>
                     </div>
                     <div class="form-group">
                         <label for="entity-name">Name (Optional)</label>
@@ -653,6 +657,7 @@
                         <label for="entity-type">Type (Optional)</label>
                         <select id="entity-type">
                             <option value="">Select type</option>
+                            <option value="ecosystem">Ecosystem</option>
                             <option value="organization">Organization</option>
                             <option value="person">Person</option>
                             <option value="device">Device</option>
@@ -720,6 +725,68 @@
             <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
                 <button class="btn-secondary" onclick="closeAuthorizationModal()">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Entity Modal -->
+    <div id="edit-entity-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Entity</h3>
+                <button class="modal-close" onclick="closeEditEntityModal()">&times;</button>
+            </div>
+
+            <form id="edit-entity-form">
+                <input type="hidden" id="edit-entity-id">
+
+                <div class="form-group">
+                    <label for="edit-entity-did">Entity DID *</label>
+                    <input type="text" id="edit-entity-did" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-entity-authority">Authority DID</label>
+                    <select id="edit-entity-authority">
+                        <option value="">None (for root ecosystems only)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-entity-name">Name</label>
+                    <input type="text" id="edit-entity-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-entity-type">Type</label>
+                    <select id="edit-entity-type">
+                        <option value="">Select type</option>
+                        <option value="ecosystem">Ecosystem</option>
+                        <option value="organization">Organization</option>
+                        <option value="person">Person</option>
+                        <option value="device">Device</option>
+                        <option value="service">Service</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-entity-status">Status *</label>
+                    <select id="edit-entity-status" required>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-entity-description">Description</label>
+                    <textarea id="edit-entity-description"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                    <button type="button" class="btn-secondary" onclick="closeEditEntityModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -804,6 +871,49 @@
         let registryConfig = null;
 
         // Registry Configuration
+        // Load active authorities for dropdowns
+        let activeAuthorities = [];
+
+        async function loadActiveAuthorities() {
+            try {
+                activeAuthorities = await apiCall('/admin/entities/active-authorities');
+            } catch (error) {
+                console.error('Error loading active authorities:', error);
+                activeAuthorities = [];
+            }
+        }
+
+        function populateAuthorityDropdown(selectId, selectedValue = '') {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            // Clear existing options except the first placeholder
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            // Add options for each active entity
+            activeAuthorities.forEach(entity => {
+                const option = document.createElement('option');
+                option.value = entity.entity_did;
+                option.textContent = entity.name;
+                if (entity.entity_did === selectedValue) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            // If a selected value is provided but not in the list, add it as a disabled option
+            if (selectedValue && !activeAuthorities.find(e => e.entity_did === selectedValue)) {
+                const option = document.createElement('option');
+                option.value = selectedValue;
+                option.textContent = `${selectedValue} (inactive)`;
+                option.disabled = true;
+                option.selected = true;
+                select.appendChild(option);
+            }
+        }
+
         async function loadRegistryConfig() {
             try {
                 const config = await apiCall('/admin/registry-config');
@@ -811,7 +921,8 @@
 
                 if (config) {
                     // Update form fields
-                    document.getElementById('config-authority-id').value = config.authority_id || '';
+                    await loadActiveAuthorities();
+                    populateAuthorityDropdown('config-authority-id', config.authority_id || '');
                     document.getElementById('config-egf-id').value = config.egf_id || '';
                     document.getElementById('config-name').value = config.name || '';
                     document.getElementById('config-description').value = config.description || '';
@@ -842,12 +953,6 @@
                             </tr>
                         </table>
                     `;
-
-                    // Update entity form default if on entities tab
-                    const entityAuthorityInput = document.getElementById('entity-authority');
-                    if (entityAuthorityInput && config.authority_id) {
-                        entityAuthorityInput.placeholder = config.authority_id;
-                    }
                 } else {
                     document.getElementById('registry-config-display').innerHTML =
                         '<div class="empty-state">No configuration found. Please save the configuration above.</div>';
@@ -1117,6 +1222,10 @@
         // Entities
         async function loadEntities() {
             try {
+                // Load active authorities for dropdowns
+                await loadActiveAuthorities();
+                populateAuthorityDropdown('entity-authority');
+
                 const entities = await apiCall('/admin/entities');
                 const container = document.getElementById('entities-list');
 
@@ -1150,6 +1259,7 @@
                                         ${e.authorizations.map(a => `<div>[${a.action}] ${a.resource}</div>`).join(' ') || '-'}
                                     </td>
                                     <td class="actions">
+                                        <button class="btn-secondary" onclick='openEditEntityModal(${JSON.stringify(e)})'>Edit</button>
                                         <button class="btn-primary" onclick='openAuthorizationModal(${JSON.stringify(e)})'>Edit Authorizations</button>
                                         <button class="btn-danger" onclick="deleteEntity(${e.id})">Delete</button>
                                     </td>
@@ -1170,22 +1280,20 @@
                 const checkboxes = document.querySelectorAll('input[name="authorization"]:checked');
                 const authorizationIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
-                // Get authority_id from form or use default from config
-                let authorityId = document.getElementById('entity-authority').value.trim();
-                if (!authorityId) {
-                    if (registryConfig && registryConfig.authority_id) {
-                        authorityId = registryConfig.authority_id;
-                    } else {
-                        showAlert('Please enter an Authority DID or configure a default in Registry Config', 'error');
-                        return;
-                    }
+                const authorityId = document.getElementById('entity-authority').value;
+                const entityType = document.getElementById('entity-type').value;
+
+                // Non-ecosystem entities must have an authority
+                if (!authorityId && entityType !== 'ecosystem') {
+                    showAlert('Non-ecosystem entities must have an authority', 'error');
+                    return;
                 }
 
                 await apiCall('/admin/entities', 'POST', {
                     entity_did: document.getElementById('entity-did').value,
-                    authority_id: authorityId,
+                    authority_id: authorityId || null,
                     name: document.getElementById('entity-name').value || null,
-                    entity_type: document.getElementById('entity-type').value || null,
+                    entity_type: entityType || null,
                     status: document.getElementById('entity-status').value,
                     description: document.getElementById('entity-description').value || null,
                     authorization_ids: authorizationIds.length > 0 ? authorizationIds : null
@@ -1209,6 +1317,75 @@
                 showAlert(`Error: ${error.message}`, 'error');
             }
         }
+
+        // Edit Entity Modal Management
+        function openEditEntityModal(entity) {
+            // Populate form with entity data
+            document.getElementById('edit-entity-id').value = entity.id;
+            document.getElementById('edit-entity-did').value = entity.entity_did;
+            populateAuthorityDropdown('edit-entity-authority', entity.authority_id);
+            document.getElementById('edit-entity-name').value = entity.name || '';
+            document.getElementById('edit-entity-type').value = entity.entity_type || '';
+            document.getElementById('edit-entity-status').value = entity.status;
+            document.getElementById('edit-entity-description').value = entity.description || '';
+
+            // Show modal
+            document.getElementById('edit-entity-modal').classList.add('active');
+        }
+
+        function closeEditEntityModal() {
+            document.getElementById('edit-entity-modal').classList.remove('active');
+            document.getElementById('edit-entity-form').reset();
+        }
+
+        // Close edit modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('edit-entity-modal');
+            if (e.target === modal) {
+                closeEditEntityModal();
+            }
+        });
+
+        document.getElementById('edit-entity-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const entityId = document.getElementById('edit-entity-id').value;
+                const entityDid = document.getElementById('edit-entity-did').value;
+                const authorityId = document.getElementById('edit-entity-authority').value;
+                const entityType = document.getElementById('edit-entity-type').value;
+
+                // Validate DIDs
+                if (!entityDid.startsWith('did:')) {
+                    showAlert('Entity DID must be a valid DID URI', 'error');
+                    return;
+                }
+                if (authorityId && !authorityId.startsWith('did:')) {
+                    showAlert('Authority DID must be a valid DID URI', 'error');
+                    return;
+                }
+
+                // Non-ecosystem entities must have an authority
+                if (!authorityId && entityType !== 'ecosystem') {
+                    showAlert('Non-ecosystem entities must have an authority', 'error');
+                    return;
+                }
+
+                await apiCall(`/admin/entities/${entityId}`, 'PUT', {
+                    entity_did: entityDid,
+                    authority_id: authorityId || null,
+                    name: document.getElementById('edit-entity-name').value || null,
+                    entity_type: entityType || null,
+                    status: document.getElementById('edit-entity-status').value,
+                    description: document.getElementById('edit-entity-description').value || null
+                });
+
+                showAlert('Entity updated successfully!');
+                closeEditEntityModal();
+                loadEntities();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
 
         // Authorization Modal Management
         let currentEntityForModal = null;

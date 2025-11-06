@@ -80,9 +80,9 @@ class Entity(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     entity_did = Column(String, unique=True, index=True, nullable=False)
-    authority_id = Column(String, nullable=False, index=True)  # Single DID for the authority
+    authority_id = Column(String, nullable=True, index=True)  # Single DID for the authority (null for root ecosystems)
     name = Column(String, nullable=True)
-    entity_type = Column(String, nullable=True)  # organization, person, etc.
+    entity_type = Column(String, nullable=True)  # ecosystem, organization, person, etc.
     status = Column(String, default="active")  # active, inactive, suspended
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
