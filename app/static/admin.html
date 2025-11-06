@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayra TRQP Admin - Trust Registry Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            text-align: center;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: white;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .tab-button:hover {
+            background: #f8f9fa;
+            color: #667eea;
+        }
+
+        .tab-button.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .checkbox-group {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .checkbox-item {
+            padding: 5px 0;
+        }
+
+        .checkbox-item label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+        }
+
+        .checkbox-item input {
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .tab-button {
+                white-space: nowrap;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🔐 Ayra TRQP Admin</h1>
+            <p>Trust Registry Management Interface</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="alert-container"></div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('did-methods')">DID Methods</button>
+            <button class="tab-button" onclick="showTab('assurance-levels')">Assurance Levels</button>
+            <button class="tab-button" onclick="showTab('authorizations')">Authorizations</button>
+            <button class="tab-button" onclick="showTab('entities')">Entities</button>
+        </div>
+
+        <!-- DID Methods Tab -->
+        <div id="did-methods-tab" class="tab-content active">
+            <div class="card">
+                <h2>Add DID Method</h2>
+                <form id="did-method-form">
+                    <div class="form-group">
+                        <label for="did-method-identifier">Identifier *</label>
+                        <input type="text" id="did-method-identifier" placeholder="e.g., web, key, peer, sov" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="did-method-description">Description (Optional)</label>
+                        <textarea id="did-method-description" placeholder="Description of the DID method"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Add DID Method</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>DID Methods</h2>
+                <div id="did-methods-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assurance Levels Tab -->
+        <div id="assurance-levels-tab" class="tab-content">
+            <div class="card">
+                <h2>Add Assurance Level</h2>
+                <form id="assurance-level-form">
+                    <div class="form-group">
+                        <label for="assurance-identifier">Identifier (URI) *</label>
+                        <input type="text" id="assurance-identifier" placeholder="urn:assurance:loa1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="assurance-name">Name *</label>
+                        <input type="text" id="assurance-name" placeholder="LOA1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="assurance-egf">EGF DID (Optional)</label>
+                        <input type="text" id="assurance-egf" placeholder="did:example:egf123">
+                    </div>
+                    <div class="form-group">
+                        <label for="assurance-description">Description *</label>
+                        <textarea id="assurance-description" placeholder="Description of the assurance level" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Add Assurance Level</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Assurance Levels</h2>
+                <div id="assurance-levels-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authorizations Tab -->
+        <div id="authorizations-tab" class="tab-content">
+            <div class="card">
+                <h2>Add Authorization</h2>
+                <form id="authorization-form">
+                    <div class="form-group">
+                        <label for="auth-action">Action *</label>
+                        <input type="text" id="auth-action" placeholder="e.g., issue, verify, revoke" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-resource">Resource *</label>
+                        <input type="text" id="auth-resource" placeholder="e.g., credential, entity" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="auth-description">Description (Optional)</label>
+                        <textarea id="auth-description" placeholder="Description of the authorization"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Add Authorization</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Authorizations</h2>
+                <div id="authorizations-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entities Tab -->
+        <div id="entities-tab" class="tab-content">
+            <div class="card">
+                <h2>Add Entity</h2>
+                <form id="entity-form">
+                    <div class="form-group">
+                        <label for="entity-did">Entity DID *</label>
+                        <input type="text" id="entity-did" placeholder="did:example:entity123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="entity-authority">Authority DID *</label>
+                        <input type="text" id="entity-authority" placeholder="did:example:ecosystem456" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="entity-name">Name (Optional)</label>
+                        <input type="text" id="entity-name" placeholder="Entity name">
+                    </div>
+                    <div class="form-group">
+                        <label for="entity-type">Type (Optional)</label>
+                        <select id="entity-type">
+                            <option value="">Select type</option>
+                            <option value="organization">Organization</option>
+                            <option value="person">Person</option>
+                            <option value="device">Device</option>
+                            <option value="service">Service</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="entity-status">Status *</label>
+                        <select id="entity-status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="entity-description">Description (Optional)</label>
+                        <textarea id="entity-description" placeholder="Entity description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Authorizations</label>
+                        <div id="entity-authorizations-checkboxes" class="checkbox-group">
+                            <div class="loading">Loading authorizations...</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Add Entity</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Entities</h2>
+                <div id="entities-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // Tab Management
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+
+            loadTabData(tabName);
+        }
+
+        function loadTabData(tabName) {
+            switch(tabName) {
+                case 'did-methods':
+                    loadDIDMethods();
+                    break;
+                case 'assurance-levels':
+                    loadAssuranceLevels();
+                    break;
+                case 'authorizations':
+                    loadAuthorizations();
+                    loadAuthorizationsForCheckboxes();
+                    break;
+                case 'entities':
+                    loadEntities();
+                    loadAuthorizationsForCheckboxes();
+                    break;
+            }
+        }
+
+        // Alert Management
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // API Functions
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, options);
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+
+            if (response.status === 204) {
+                return null;
+            }
+
+            return response.json();
+        }
+
+        // DID Methods
+        async function loadDIDMethods() {
+            try {
+                const methods = await apiCall('/admin/did-methods');
+                const container = document.getElementById('did-methods-list');
+
+                if (methods.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No DID methods found. Add one above.</div>';
+                    return;
+                }
+
+                const table = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Identifier</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${methods.map(m => `
+                                <tr>
+                                    <td><strong>${m.identifier}</strong></td>
+                                    <td>${m.description || '-'}</td>
+                                    <td class="actions">
+                                        <button class="btn-danger" onclick="deleteDIDMethod(${m.id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            } catch (error) {
+                showAlert(`Error loading DID methods: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('did-method-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiCall('/admin/did-methods', 'POST', {
+                    identifier: document.getElementById('did-method-identifier').value,
+                    description: document.getElementById('did-method-description').value || null
+                });
+                showAlert('DID method added successfully!');
+                e.target.reset();
+                loadDIDMethods();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function deleteDIDMethod(id) {
+            if (!confirm('Are you sure you want to delete this DID method?')) return;
+            try {
+                await apiCall(`/admin/did-methods/${id}`, 'DELETE');
+                showAlert('DID method deleted successfully!');
+                loadDIDMethods();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Assurance Levels
+        async function loadAssuranceLevels() {
+            try {
+                const levels = await apiCall('/admin/assurance-levels');
+                const container = document.getElementById('assurance-levels-list');
+
+                if (levels.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No assurance levels found. Add one above.</div>';
+                    return;
+                }
+
+                const table = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Identifier</th>
+                                <th>EGF DID</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${levels.map(l => `
+                                <tr>
+                                    <td><strong>${l.name}</strong></td>
+                                    <td>${l.identifier}</td>
+                                    <td>${l.egf_did || '-'}</td>
+                                    <td>${l.description}</td>
+                                    <td class="actions">
+                                        <button class="btn-danger" onclick="deleteAssuranceLevel(${l.id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            } catch (error) {
+                showAlert(`Error loading assurance levels: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('assurance-level-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiCall('/admin/assurance-levels', 'POST', {
+                    identifier: document.getElementById('assurance-identifier').value,
+                    name: document.getElementById('assurance-name').value,
+                    egf_did: document.getElementById('assurance-egf').value || null,
+                    description: document.getElementById('assurance-description').value
+                });
+                showAlert('Assurance level added successfully!');
+                e.target.reset();
+                loadAssuranceLevels();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function deleteAssuranceLevel(id) {
+            if (!confirm('Are you sure you want to delete this assurance level?')) return;
+            try {
+                await apiCall(`/admin/assurance-levels/${id}`, 'DELETE');
+                showAlert('Assurance level deleted successfully!');
+                loadAssuranceLevels();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Authorizations
+        async function loadAuthorizations() {
+            try {
+                const auths = await apiCall('/admin/authorizations');
+                const container = document.getElementById('authorizations-list');
+
+                if (auths.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No authorizations found. Add one above.</div>';
+                    return;
+                }
+
+                const table = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Resource</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${auths.map(a => `
+                                <tr>
+                                    <td><strong>${a.action}</strong></td>
+                                    <td><strong>${a.resource}</strong></td>
+                                    <td>${a.description || '-'}</td>
+                                    <td class="actions">
+                                        <button class="btn-danger" onclick="deleteAuthorization(${a.id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            } catch (error) {
+                showAlert(`Error loading authorizations: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadAuthorizationsForCheckboxes() {
+            try {
+                const auths = await apiCall('/admin/authorizations');
+                const container = document.getElementById('entity-authorizations-checkboxes');
+
+                if (auths.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No authorizations available. Add them in the Authorizations tab.</div>';
+                    return;
+                }
+
+                container.innerHTML = auths.map(a => `
+                    <div class="checkbox-item">
+                        <label>
+                            <input type="checkbox" name="authorization" value="${a.id}">
+                            ${a.action} - ${a.resource}${a.description ? ` (${a.description})` : ''}
+                        </label>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading authorizations:', error);
+            }
+        }
+
+        document.getElementById('authorization-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiCall('/admin/authorizations', 'POST', {
+                    action: document.getElementById('auth-action').value,
+                    resource: document.getElementById('auth-resource').value,
+                    description: document.getElementById('auth-description').value || null
+                });
+                showAlert('Authorization added successfully!');
+                e.target.reset();
+                loadAuthorizations();
+                loadAuthorizationsForCheckboxes();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function deleteAuthorization(id) {
+            if (!confirm('Are you sure you want to delete this authorization?')) return;
+            try {
+                await apiCall(`/admin/authorizations/${id}`, 'DELETE');
+                showAlert('Authorization deleted successfully!');
+                loadAuthorizations();
+                loadAuthorizationsForCheckboxes();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Entities
+        async function loadEntities() {
+            try {
+                const entities = await apiCall('/admin/entities');
+                const container = document.getElementById('entities-list');
+
+                if (entities.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No entities found. Add one above.</div>';
+                    return;
+                }
+
+                const table = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Entity DID</th>
+                                <th>Name</th>
+                                <th>Authority DID</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Authorizations</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${entities.map(e => `
+                                <tr>
+                                    <td><strong>${e.entity_did}</strong></td>
+                                    <td>${e.name || '-'}</td>
+                                    <td>${e.authority_id}</td>
+                                    <td>${e.entity_type || '-'}</td>
+                                    <td><span class="badge badge-${e.status}">${e.status}</span></td>
+                                    <td>
+                                        ${e.authorizations.map(a => `<div>${a.action}:${a.resource}</div>`).join('') || '-'}
+                                    </td>
+                                    <td class="actions">
+                                        <button class="btn-danger" onclick="deleteEntity(${e.id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = table;
+            } catch (error) {
+                showAlert(`Error loading entities: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('entity-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const checkboxes = document.querySelectorAll('input[name="authorization"]:checked');
+                const authorizationIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+                await apiCall('/admin/entities', 'POST', {
+                    entity_did: document.getElementById('entity-did').value,
+                    authority_id: document.getElementById('entity-authority').value,
+                    name: document.getElementById('entity-name').value || null,
+                    entity_type: document.getElementById('entity-type').value || null,
+                    status: document.getElementById('entity-status').value,
+                    description: document.getElementById('entity-description').value || null,
+                    authorization_ids: authorizationIds.length > 0 ? authorizationIds : null
+                });
+                showAlert('Entity added successfully!');
+                e.target.reset();
+                document.querySelectorAll('input[name="authorization"]').forEach(cb => cb.checked = false);
+                loadEntities();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function deleteEntity(id) {
+            if (!confirm('Are you sure you want to delete this entity?')) return;
+            try {
+                await apiCall(`/admin/entities/${id}`, 'DELETE');
+                showAlert('Entity deleted successfully!');
+                loadEntities();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDIDMethods();
+            loadAuthorizationsForCheckboxes();
+        });
+    </script>
+</body>
+</html>
