@@ -210,11 +210,56 @@
         .actions {
             display: flex;
             gap: 5px;
+            flex-wrap: wrap;
+            min-width: 200px;
         }
 
         .actions button {
             padding: 6px 12px;
             font-size: 12px;
+            white-space: nowrap;
+        }
+
+        /* Table column widths for better alignment in entities table */
+        #entities-list table td:nth-child(1),
+        #entities-list table th:nth-child(1) {
+            width: 20%;
+            word-break: break-all;
+        }
+
+        #entities-list table td:nth-child(2),
+        #entities-list table th:nth-child(2) {
+            width: 12%;
+        }
+
+        #entities-list table td:nth-child(3),
+        #entities-list table th:nth-child(3) {
+            width: 18%;
+            word-break: break-all;
+        }
+
+        #entities-list table td:nth-child(4),
+        #entities-list table th:nth-child(4) {
+            width: 8%;
+        }
+
+        #entities-list table td:nth-child(5),
+        #entities-list table th:nth-child(5) {
+            width: 8%;
+        }
+
+        #entities-list table td:nth-child(6),
+        #entities-list table th:nth-child(6) {
+            width: 18%;
+        }
+
+        #entities-list table td:nth-child(7),
+        #entities-list table th:nth-child(7) {
+            width: 16%;
+        }
+
+        table td {
+            vertical-align: top;
         }
 
         .alert {
@@ -294,6 +339,129 @@
             color: #667eea;
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h3 {
+            color: #667eea;
+            font-size: 1.4em;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section h4 {
+            color: #555;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .authorization-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .authorization-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .authorization-item-info {
+            flex: 1;
+        }
+
+        .authorization-item-info strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .authorization-item-info small {
+            color: #666;
+        }
+
+        .authorization-item button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .available-authorization-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -333,14 +501,51 @@
         <div id="alert-container"></div>
 
         <div class="tabs">
-            <button class="tab-button active" onclick="showTab('did-methods')">DID Methods</button>
-            <button class="tab-button" onclick="showTab('assurance-levels')">Assurance Levels</button>
+            <button class="tab-button active" onclick="showTab('entities')">Entities</button>
             <button class="tab-button" onclick="showTab('authorizations')">Authorizations</button>
-            <button class="tab-button" onclick="showTab('entities')">Entities</button>
+            <button class="tab-button" onclick="showTab('registry-config')">Registry Config</button>
+            <button class="tab-button" onclick="showTab('did-methods')">DID Methods</button>
+            <button class="tab-button" onclick="showTab('assurance-levels')">Assurance Levels</button>
+        </div>
+
+        <!-- Registry Config Tab -->
+        <div id="registry-config-tab" class="tab-content">
+            <div class="card">
+                <h2>Trust Registry Configuration</h2>
+                <p style="color: #666; margin-bottom: 20px;">Configure global settings for your trust registry. The Authority ID will be used as the default when adding entities.</p>
+                <form id="registry-config-form">
+                    <div class="form-group">
+                        <label for="config-authority-id">Default Authority ID (DID) *</label>
+                        <input type="text" id="config-authority-id" placeholder="did:example:ecosystem456" required>
+                        <small style="color: #666;">This DID will be the default authority for entities</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="config-egf-id">Ecosystem Governance Framework ID (DID)</label>
+                        <input type="text" id="config-egf-id" placeholder="did:example:egf789">
+                        <small style="color: #666;">The EGF DID for this trust registry</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="config-name">Registry Name</label>
+                        <input type="text" id="config-name" placeholder="Ayra Trust Registry">
+                    </div>
+                    <div class="form-group">
+                        <label for="config-description">Description</label>
+                        <textarea id="config-description" placeholder="Description of this trust registry"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Save Configuration</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Current Configuration</h2>
+                <div id="registry-config-display">
+                    <div class="loading">Loading configuration...</div>
+                </div>
+            </div>
         </div>
 
         <!-- DID Methods Tab -->
-        <div id="did-methods-tab" class="tab-content active">
+        <div id="did-methods-tab" class="tab-content">
             <div class="card">
                 <h2>Add DID Method</h2>
                 <form id="did-method-form">
@@ -427,7 +632,7 @@
         </div>
 
         <!-- Entities Tab -->
-        <div id="entities-tab" class="tab-content">
+        <div id="entities-tab" class="tab-content active">
             <div class="card">
                 <h2>Add Entity</h2>
                 <form id="entity-form">
@@ -436,8 +641,9 @@
                         <input type="text" id="entity-did" placeholder="did:example:entity123" required>
                     </div>
                     <div class="form-group">
-                        <label for="entity-authority">Authority DID *</label>
-                        <input type="text" id="entity-authority" placeholder="did:example:ecosystem456" required>
+                        <label for="entity-authority">Authority DID</label>
+                        <input type="text" id="entity-authority" placeholder="Uses default from Registry Config if empty">
+                        <small style="color: #666;">Leave empty to use the default authority from Registry Config</small>
                     </div>
                     <div class="form-group">
                         <label for="entity-name">Name (Optional)</label>
@@ -484,6 +690,39 @@
         </div>
     </div>
 
+    <!-- Authorization Management Modal -->
+    <div id="authorization-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manage Entity Authorizations</h3>
+                <button class="modal-close" onclick="closeAuthorizationModal()">&times;</button>
+            </div>
+
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                <strong style="color: #667eea;">Entity:</strong> <span id="modal-entity-name"></span><br>
+                <strong style="color: #667eea;">DID:</strong> <span id="modal-entity-did"></span>
+            </div>
+
+            <div class="modal-section">
+                <h4>Current Authorizations</h4>
+                <div id="current-authorizations" class="authorization-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h4>Available Authorizations</h4>
+                <div id="available-authorizations" class="authorization-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                <button class="btn-secondary" onclick="closeAuthorizationModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = '';
 
@@ -500,6 +739,9 @@
 
         function loadTabData(tabName) {
             switch(tabName) {
+                case 'registry-config':
+                    loadRegistryConfig();
+                    break;
                 case 'did-methods':
                     loadDIDMethods();
                     break;
@@ -513,6 +755,7 @@
                 case 'entities':
                     loadEntities();
                     loadAuthorizationsForCheckboxes();
+                    loadRegistryConfig(); // Load config to get default authority_id
                     break;
             }
         }
@@ -556,6 +799,91 @@
 
             return response.json();
         }
+
+        // Global variable to store registry config
+        let registryConfig = null;
+
+        // Registry Configuration
+        async function loadRegistryConfig() {
+            try {
+                const config = await apiCall('/admin/registry-config');
+                registryConfig = config;
+
+                if (config) {
+                    // Update form fields
+                    document.getElementById('config-authority-id').value = config.authority_id || '';
+                    document.getElementById('config-egf-id').value = config.egf_id || '';
+                    document.getElementById('config-name').value = config.name || '';
+                    document.getElementById('config-description').value = config.description || '';
+
+                    // Update display
+                    const displayContainer = document.getElementById('registry-config-display');
+                    displayContainer.innerHTML = `
+                        <table>
+                            <tr>
+                                <th style="width: 30%">Setting</th>
+                                <th>Value</th>
+                            </tr>
+                            <tr>
+                                <td><strong>Default Authority ID</strong></td>
+                                <td>${config.authority_id || '-'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>EGF ID</strong></td>
+                                <td>${config.egf_id || '-'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Registry Name</strong></td>
+                                <td>${config.name || '-'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Description</strong></td>
+                                <td>${config.description || '-'}</td>
+                            </tr>
+                        </table>
+                    `;
+
+                    // Update entity form default if on entities tab
+                    const entityAuthorityInput = document.getElementById('entity-authority');
+                    if (entityAuthorityInput && config.authority_id) {
+                        entityAuthorityInput.placeholder = config.authority_id;
+                    }
+                } else {
+                    document.getElementById('registry-config-display').innerHTML =
+                        '<div class="empty-state">No configuration found. Please save the configuration above.</div>';
+                }
+            } catch (error) {
+                showAlert(`Error loading registry config: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('registry-config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const authorityId = document.getElementById('config-authority-id').value;
+                if (!authorityId.startsWith('did:')) {
+                    showAlert('Authority ID must be a valid DID URI', 'error');
+                    return;
+                }
+
+                const egfId = document.getElementById('config-egf-id').value;
+                if (egfId && !egfId.startsWith('did:')) {
+                    showAlert('EGF ID must be a valid DID URI', 'error');
+                    return;
+                }
+
+                await apiCall('/admin/registry-config', 'POST', {
+                    authority_id: authorityId,
+                    egf_id: egfId || null,
+                    name: document.getElementById('config-name').value || null,
+                    description: document.getElementById('config-description').value || null
+                });
+                showAlert('Registry configuration saved successfully!');
+                loadRegistryConfig();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
 
         // DID Methods
         async function loadDIDMethods() {
@@ -819,9 +1147,10 @@
                                     <td>${e.entity_type || '-'}</td>
                                     <td><span class="badge badge-${e.status}">${e.status}</span></td>
                                     <td>
-                                        ${e.authorizations.map(a => `<div>${a.action}:${a.resource}</div>`).join('') || '-'}
+                                        ${e.authorizations.map(a => `<div>[${a.action}] ${a.resource}</div>`).join('') || '-'}
                                     </td>
                                     <td class="actions">
+                                        <button class="btn-primary" onclick='openAuthorizationModal(${JSON.stringify(e)})'>Edit Authorizations</button>
                                         <button class="btn-danger" onclick="deleteEntity(${e.id})">Delete</button>
                                     </td>
                                 </tr>
@@ -841,9 +1170,20 @@
                 const checkboxes = document.querySelectorAll('input[name="authorization"]:checked');
                 const authorizationIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
+                // Get authority_id from form or use default from config
+                let authorityId = document.getElementById('entity-authority').value.trim();
+                if (!authorityId) {
+                    if (registryConfig && registryConfig.authority_id) {
+                        authorityId = registryConfig.authority_id;
+                    } else {
+                        showAlert('Please enter an Authority DID or configure a default in Registry Config', 'error');
+                        return;
+                    }
+                }
+
                 await apiCall('/admin/entities', 'POST', {
                     entity_did: document.getElementById('entity-did').value,
-                    authority_id: document.getElementById('entity-authority').value,
+                    authority_id: authorityId,
                     name: document.getElementById('entity-name').value || null,
                     entity_type: document.getElementById('entity-type').value || null,
                     status: document.getElementById('entity-status').value,
@@ -870,10 +1210,132 @@
             }
         }
 
+        // Authorization Modal Management
+        let currentEntityForModal = null;
+        let allAvailableAuthorizations = [];
+
+        async function openAuthorizationModal(entity) {
+            currentEntityForModal = entity;
+
+            // Update modal header info
+            document.getElementById('modal-entity-name').textContent = entity.name || 'Unnamed Entity';
+            document.getElementById('modal-entity-did').textContent = entity.entity_did;
+
+            // Show modal
+            document.getElementById('authorization-modal').classList.add('active');
+
+            // Load authorizations
+            await loadModalAuthorizations();
+        }
+
+        function closeAuthorizationModal() {
+            document.getElementById('authorization-modal').classList.remove('active');
+            currentEntityForModal = null;
+            // Reload entities to reflect any changes
+            loadEntities();
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('authorization-modal');
+            if (e.target === modal) {
+                closeAuthorizationModal();
+            }
+        });
+
+        async function loadModalAuthorizations() {
+            try {
+                // Load all authorizations if not already loaded
+                if (allAvailableAuthorizations.length === 0) {
+                    allAvailableAuthorizations = await apiCall('/admin/authorizations');
+                }
+
+                // Get current entity authorizations
+                const currentAuthIds = currentEntityForModal.authorizations.map(a => a.id);
+
+                // Render current authorizations
+                const currentContainer = document.getElementById('current-authorizations');
+                if (currentEntityForModal.authorizations.length === 0) {
+                    currentContainer.innerHTML = '<div class="empty-state">No authorizations assigned</div>';
+                } else {
+                    currentContainer.innerHTML = currentEntityForModal.authorizations.map(auth => `
+                        <div class="authorization-item">
+                            <div class="authorization-item-info">
+                                <strong>[${auth.action}] ${auth.resource}</strong>
+                                <small>${auth.description || 'No description'}</small>
+                            </div>
+                            <button class="btn-danger" onclick="removeAuthorization(${currentEntityForModal.id}, ${auth.id})">
+                                Remove
+                            </button>
+                        </div>
+                    `).join('');
+                }
+
+                // Render available authorizations (those not currently assigned)
+                const availableContainer = document.getElementById('available-authorizations');
+                const availableAuths = allAvailableAuthorizations.filter(auth =>
+                    !currentAuthIds.includes(auth.id)
+                );
+
+                if (availableAuths.length === 0) {
+                    availableContainer.innerHTML = '<div class="empty-state">All authorizations have been assigned</div>';
+                } else {
+                    availableContainer.innerHTML = availableAuths.map(auth => `
+                        <div class="available-authorization-item">
+                            <div class="authorization-item-info">
+                                <strong>[${auth.action}] ${auth.resource}</strong>
+                                <small>${auth.description || 'No description'}</small>
+                            </div>
+                            <button class="btn-success" onclick="addAuthorization(${currentEntityForModal.id}, ${auth.id})">
+                                Add
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                showAlert(`Error loading authorizations: ${error.message}`, 'error');
+            }
+        }
+
+        async function addAuthorization(entityId, authId) {
+            try {
+                await apiCall(`/admin/entities/${entityId}/authorizations/${authId}`, 'POST');
+                showAlert('Authorization added successfully!');
+
+                // Reload entity data
+                const updatedEntity = await apiCall(`/admin/entities/${entityId}`);
+                currentEntityForModal = updatedEntity;
+
+                // Reload modal
+                await loadModalAuthorizations();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function removeAuthorization(entityId, authId) {
+            if (!confirm('Are you sure you want to remove this authorization?')) return;
+
+            try {
+                await apiCall(`/admin/entities/${entityId}/authorizations/${authId}`, 'DELETE');
+                showAlert('Authorization removed successfully!');
+
+                // Reload entity data
+                const updatedEntity = await apiCall(`/admin/entities/${entityId}`);
+                currentEntityForModal = updatedEntity;
+
+                // Reload modal
+                await loadModalAuthorizations();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
         // Initial Load
         document.addEventListener('DOMContentLoaded', () => {
-            loadDIDMethods();
+            loadRegistryConfig();
             loadAuthorizationsForCheckboxes();
+            loadEntities();
         });
     </script>
 </body>

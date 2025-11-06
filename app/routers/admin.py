@@ -5,6 +5,7 @@ Provides CRUD operations for managing lookup values and entities
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -120,6 +121,84 @@ class EntityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RegistryConfigCreate(BaseModel):
+    authority_id: str = Field(..., description="Default authority DID for entities")
+    egf_id: Optional[str] = Field(None, description="Ecosystem Governance Framework DID")
+    name: Optional[str] = Field(None, description="Registry name")
+    description: Optional[str] = Field(None, description="Registry description")
+
+
+class RegistryConfigResponse(BaseModel):
+    authority_id: str
+    egf_id: Optional[str]
+    name: Optional[str]
+    description: Optional[str]
+
+
+# Registry Configuration
+@router.get("/registry-config", response_model=RegistryConfigResponse)
+async def get_registry_config(db: Session = Depends(get_db)):
+    """Get registry configuration"""
+    # For now, we'll use a simple config stored as a single-row table
+    # In a real implementation, you might want to use a config file or environment variables
+    config = db.execute(
+        text("SELECT authority_id, egf_id, name, description FROM registry_config LIMIT 1")
+    ).fetchone()
+
+    if config:
+        return RegistryConfigResponse(
+            authority_id=config[0],
+            egf_id=config[1],
+            name=config[2],
+            description=config[3]
+        )
+
+    # Return default config if none exists
+    return RegistryConfigResponse(
+        authority_id="did:example:ecosystem456",
+        egf_id="did:example:egf789",
+        name="Ayra Trust Registry",
+        description="Trust Registry for Ayra Network"
+    )
+
+
+@router.post("/registry-config", response_model=RegistryConfigResponse)
+async def save_registry_config(config: RegistryConfigCreate, db: Session = Depends(get_db)):
+    """Save registry configuration"""
+    try:
+        # Validate DIDs
+        if not config.authority_id.startswith("did:"):
+            raise HTTPException(status_code=400, detail="authority_id must be a valid DID URI")
+        if config.egf_id and not config.egf_id.startswith("did:"):
+            raise HTTPException(status_code=400, detail="egf_id must be a valid DID URI")
+
+        # Delete existing config and insert new one (simple upsert)
+        db.execute(text("DELETE FROM registry_config"))
+        db.execute(
+            text("""INSERT INTO registry_config (authority_id, egf_id, name, description)
+                    VALUES (:authority_id, :egf_id, :name, :description)"""),
+            {
+                "authority_id": config.authority_id,
+                "egf_id": config.egf_id,
+                "name": config.name,
+                "description": config.description
+            }
+        )
+        db.commit()
+
+        return RegistryConfigResponse(
+            authority_id=config.authority_id,
+            egf_id=config.egf_id,
+            name=config.name,
+            description=config.description
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error saving configuration: {str(e)}")
 
 
 # DID Methods Management

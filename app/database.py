@@ -126,6 +126,19 @@ class TrustRegistryConfig(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class RegistryConfig(Base):
+    """Simple registry configuration for admin UI"""
+    __tablename__ = "registry_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    authority_id = Column(String, nullable=False)
+    egf_id = Column(String, nullable=True)
+    name = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 def get_db():
     """Dependency for getting database session"""
     db = SessionLocal()
@@ -213,6 +226,15 @@ def seed_default_data():
             controllers='["did:example:controller1", "did:example:controller2"]'
         )
         db.add(config)
+
+        # Add default registry config for admin UI
+        registry_config = RegistryConfig(
+            authority_id="did:example:ecosystem456",
+            egf_id="did:example:egf789",
+            name="Ayra Trust Registry",
+            description="Default Trust Registry Configuration"
+        )
+        db.add(registry_config)
 
         db.commit()
         print("Database seeded successfully")
