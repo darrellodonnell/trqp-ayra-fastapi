@@ -1141,13 +1141,13 @@
                         <tbody>
                             ${entities.map(e => `
                                 <tr>
-                                    <td><strong>${e.entity_did}</strong></td>
-                                    <td>${e.name || '-'}</td>
+                                    <td>${e.entity_did}</td>
+                                    <td><strong>${e.name || '-'}</strong></td>
                                     <td>${e.authority_id}</td>
                                     <td>${e.entity_type || '-'}</td>
                                     <td><span class="badge badge-${e.status}">${e.status}</span></td>
                                     <td>
-                                        ${e.authorizations.map(a => `<div>[${a.action}] ${a.resource}</div>`).join('') || '-'}
+                                        ${e.authorizations.map(a => `<div>[${a.action}] ${a.resource}</div>`).join(' ') || '-'}
                                     </td>
                                     <td class="actions">
                                         <button class="btn-primary" onclick='openAuthorizationModal(${JSON.stringify(e)})'>Edit Authorizations</button>
