@@ -61,6 +61,13 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# SQLite databases (TRQP)
+trqp.db
+trqp.db-journal
+trqp.db.backup
+*.db
+*.db-journal
+
 # Flask stuff:
 instance/
 .webassets-cache
