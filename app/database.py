@@ -29,6 +29,20 @@ entity_authorizations = Table(
     Column('authorization_id', Integer, ForeignKey('authorizations.id'), primary_key=True)
 )
 
+# Association table for many-to-many relationship between entities and recognitions
+entity_recognitions = Table(
+    'entity_recognitions',
+    Base.metadata,
+    Column('entity_id', Integer, ForeignKey('entities.id'), primary_key=True),
+    Column('recognition_id', Integer, ForeignKey('recognitions.id'), primary_key=True),
+    Column('recognized_registry_did', String, nullable=False),  # The registry being recognized
+    Column('recognized', Boolean, default=True),  # Whether it's recognized or not
+    Column('valid_from', DateTime, nullable=True),  # When recognition starts
+    Column('valid_until', DateTime, nullable=True),  # When recognition expires
+    Column('created_at', DateTime, default=datetime.utcnow),
+    Column('updated_at', DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+)
+
 
 class DIDMethod(Base):
     """DID Method supported by the trust registry"""
@@ -74,6 +88,29 @@ class Authorization(Base):
         return f"<Authorization(action='{self.action}', resource='{self.resource}')>"
 
 
+class Recognition(Base):
+    """Recognition action+resource pairs - similar to authorizations but for ecosystem recognitions"""
+    __tablename__ = "recognitions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String, nullable=False, index=True)
+    resource = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships - using viewonly to avoid conflicts with the association table pattern
+    entities = relationship(
+        "Entity",
+        secondary=entity_recognitions,
+        back_populates="recognitions",
+        viewonly=True
+    )
+
+    def __repr__(self):
+        return f"<Recognition(action='{self.action}', resource='{self.resource}')>"
+
+
 class Entity(Base):
     """Entities registered in the trust registry"""
     __tablename__ = "entities"
@@ -90,6 +127,12 @@ class Entity(Base):
 
     # Relationships
     authorizations = relationship("Authorization", secondary=entity_authorizations, back_populates="entities")
+    recognitions = relationship(
+        "Recognition",
+        secondary=entity_recognitions,
+        back_populates="entities",
+        viewonly=True
+    )
 
     def __repr__(self):
         return f"<Entity(did='{self.entity_did}', authority='{self.authority_id}')>"
@@ -167,7 +210,7 @@ def seed_default_data():
             DIDMethod(identifier="web", description="DID Web Method"),
             DIDMethod(identifier="key", description="DID Key Method"),
             DIDMethod(identifier="peer", description="DID Peer Method"),
-            DIDMethod(identifier="sov", description="Sovrin DID Method"),
+            DIDMethod(identifier="webvh", description="Web Verifiable History"),
         ]
         db.add_all(did_methods)
 
@@ -195,33 +238,43 @@ def seed_default_data():
         authorizations = [
             Authorization(
                 action="issue",
-                resource="credential",
+                resource="ayracard:businesscard",
                 description="Authorization to issue verifiable credentials"
             ),
             Authorization(
-                action="verify",
-                resource="credential",
-                description="Authorization to verify verifiable credentials"
+                action="manager-issuers",
+                resource="ayracard:businesscard",
+                description="Authorization to managed Issuers in their ecosystem"
             ),
             Authorization(
-                action="revoke",
-                resource="credential",
-                description="Authorization to revoke verifiable credentials"
+                action="root",
+                resource="ayracard",
+                description="Root authority for Ayra™ Card ecosystem"
             ),
             Authorization(
-                action="register",
-                resource="entity",
-                description="Authorization to register new entities in the ecosystem"
+                action="issue",
+                resource="PoP",
+                description="Issue Proof of Person credentials"
             ),
         ]
         db.add_all(authorizations)
 
+        # Add default recognitions
+        recognitions = [
+            Recognition(
+                action="recognize-of",
+                resource="ecosystem",
+                description="Recognition of other ecosystems and their governance"
+            ),
+        ]
+        db.add_all(recognitions)
+
         # Add default trust registry config
         config = TrustRegistryConfig(
-            ecosystem_did="did:example:ecosystem456",
-            trustregistry_did="did:example:trustregistry123",
-            egf_did="did:example:egf789",
-            name="Ayra Trust Registry",
+            ecosystem_did="did:webvh:SCID-ATN:ayra.forum",
+            trustregistry_did="did:webvh:SCID-ATNTR:ayra.forum/atntr",
+            egf_did="did:webvh:SCID-ATNGF:ayra.forum/atngf",
+            name="Ayra Trust Network Registry",
             description="Example Trust Registry for the Ayra Trust Network",
             controllers='["did:example:controller1", "did:example:controller2"]'
         )
@@ -229,8 +282,8 @@ def seed_default_data():
 
         # Add default registry config for admin UI
         registry_config = RegistryConfig(
-            authority_id="did:example:ecosystem456",
-            egf_id="did:example:egf789",
+            authority_id="did:webvh:SCID-ATN:ayra.forum",
+            egf_id="did:webvh:SCID-ATNGF:ayra.forum/atngf",
             name="Ayra Trust Registry",
             description="Default Trust Registry Configuration"
         )

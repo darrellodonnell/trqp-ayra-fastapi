@@ -4,9 +4,11 @@ CRUD operations for database models
 
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 from app.database import (
     DIDMethod, AssuranceLevel, Authorization, Entity,
-    EcosystemRecognition, TrustRegistryConfig
+    Recognition, EcosystemRecognition, TrustRegistryConfig,
+    entity_recognitions
 )
 
 
@@ -163,6 +165,61 @@ def delete_authorization(db: Session, auth_id: int) -> bool:
     authorization = get_authorization(db, auth_id)
     if authorization:
         db.delete(authorization)
+        db.commit()
+        return True
+    return False
+
+
+# Recognitions CRUD
+def get_recognitions(db: Session) -> List[Recognition]:
+    """Get all recognitions"""
+    return db.query(Recognition).all()
+
+
+def get_recognition(db: Session, recognition_id: int) -> Optional[Recognition]:
+    """Get a specific recognition by ID"""
+    return db.query(Recognition).filter(Recognition.id == recognition_id).first()
+
+
+def get_recognition_by_action_resource(db: Session, action: str, resource: str) -> Optional[Recognition]:
+    """Get recognition by action and resource"""
+    return db.query(Recognition).filter(
+        Recognition.action == action,
+        Recognition.resource == resource
+    ).first()
+
+
+def create_recognition(db: Session, action: str, resource: str,
+                      description: Optional[str] = None) -> Recognition:
+    """Create a new recognition"""
+    recognition = Recognition(
+        action=action,
+        resource=resource,
+        description=description
+    )
+    db.add(recognition)
+    db.commit()
+    db.refresh(recognition)
+    return recognition
+
+
+def update_recognition(db: Session, recognition_id: int, **kwargs) -> Optional[Recognition]:
+    """Update a recognition"""
+    recognition = get_recognition(db, recognition_id)
+    if recognition:
+        for key, value in kwargs.items():
+            if hasattr(recognition, key):
+                setattr(recognition, key, value)
+        db.commit()
+        db.refresh(recognition)
+    return recognition
+
+
+def delete_recognition(db: Session, recognition_id: int) -> bool:
+    """Delete a recognition"""
+    recognition = get_recognition(db, recognition_id)
+    if recognition:
+        db.delete(recognition)
         db.commit()
         return True
     return False
@@ -325,3 +382,188 @@ def get_entity_authorizations_list(db: Session, entity_did: str, authority_id: s
     ).first()
 
     return entity.authorizations if entity else []
+
+
+# Entity Recognition operations
+def add_entity_recognition(db: Session, entity_id: int, recognition_id: int,
+                          recognized_registry_did: str, recognized: bool = True,
+                          valid_from: Optional[datetime] = None,
+                          valid_until: Optional[datetime] = None) -> Optional[Entity]:
+    """Add a recognition to an entity (ecosystem)"""
+    from sqlalchemy import insert
+
+    entity = get_entity(db, entity_id)
+    recognition = get_recognition(db, recognition_id)
+
+    if entity and recognition:
+        # Check if entity is an ecosystem
+        if entity.entity_type != "ecosystem":
+            return None  # Only ecosystems can have recognitions
+
+        # Insert into entity_recognitions table
+        stmt = insert(entity_recognitions).values(
+            entity_id=entity_id,
+            recognition_id=recognition_id,
+            recognized_registry_did=recognized_registry_did,
+            recognized=recognized,
+            valid_from=valid_from,
+            valid_until=valid_until
+        )
+        db.execute(stmt)
+        db.commit()
+        db.refresh(entity)
+    return entity
+
+
+def remove_entity_recognition(db: Session, entity_id: int, recognition_id: int,
+                              recognized_registry_did: str) -> Optional[Entity]:
+    """Remove a recognition from an entity"""
+    from sqlalchemy import delete
+
+    entity = get_entity(db, entity_id)
+    if entity:
+        stmt = delete(entity_recognitions).where(
+            entity_recognitions.c.entity_id == entity_id,
+            entity_recognitions.c.recognition_id == recognition_id,
+            entity_recognitions.c.recognized_registry_did == recognized_registry_did
+        )
+        db.execute(stmt)
+        db.commit()
+        db.refresh(entity)
+    return entity
+
+
+def get_entity_recognitions(db: Session, entity_id: int) -> List[dict]:
+    """Get all recognitions for an entity with details"""
+    from sqlalchemy import select
+
+    stmt = select(
+        entity_recognitions.c.recognition_id,
+        entity_recognitions.c.recognized_registry_did,
+        entity_recognitions.c.recognized,
+        entity_recognitions.c.valid_from,
+        entity_recognitions.c.valid_until,
+        Recognition.action,
+        Recognition.resource,
+        Recognition.description
+    ).join(
+        Recognition,
+        entity_recognitions.c.recognition_id == Recognition.id
+    ).where(
+        entity_recognitions.c.entity_id == entity_id
+    )
+
+    results = db.execute(stmt).fetchall()
+
+    return [
+        {
+            "recognition_id": r.recognition_id,
+            "recognized_registry_did": r.recognized_registry_did,
+            "recognized": r.recognized,
+            "valid_from": r.valid_from.isoformat() if r.valid_from else None,
+            "valid_until": r.valid_until.isoformat() if r.valid_until else None,
+            "action": r.action,
+            "resource": r.resource,
+            "description": r.description
+        }
+        for r in results
+    ]
+
+
+def check_ecosystem_recognition(db: Session, recognizing_ecosystem_did: str,
+                                recognized_registry_did: str,
+                                action: str, resource: str,
+                                check_time: Optional[datetime] = None) -> bool:
+    """Check if an ecosystem recognizes another registry for a specific action+resource"""
+    from sqlalchemy import select
+
+    if check_time is None:
+        check_time = datetime.utcnow()
+
+    # Get the recognizing ecosystem entity
+    ecosystem = db.query(Entity).filter(
+        Entity.entity_did == recognizing_ecosystem_did,
+        Entity.entity_type == "ecosystem",
+        Entity.status == "active"
+    ).first()
+
+    if not ecosystem:
+        return False
+
+    # Check if the ecosystem has the recognition
+    stmt = select(entity_recognitions).join(
+        Recognition,
+        entity_recognitions.c.recognition_id == Recognition.id
+    ).where(
+        entity_recognitions.c.entity_id == ecosystem.id,
+        entity_recognitions.c.recognized_registry_did == recognized_registry_did,
+        entity_recognitions.c.recognized == True,
+        Recognition.action == action,
+        Recognition.resource == resource
+    )
+
+    result = db.execute(stmt).fetchone()
+
+    if not result:
+        return False
+
+    # Check temporal validity
+    if result.valid_from and result.valid_from > check_time:
+        return False
+    if result.valid_until and result.valid_until < check_time:
+        return False
+
+    return True
+
+
+def get_ecosystem_recognitions_list(db: Session, ecosystem_did: str,
+                                   check_time: Optional[datetime] = None) -> List[dict]:
+    """Get all active recognitions for an ecosystem"""
+    from sqlalchemy import select
+
+    if check_time is None:
+        check_time = datetime.utcnow()
+
+    ecosystem = db.query(Entity).filter(
+        Entity.entity_did == ecosystem_did,
+        Entity.entity_type == "ecosystem"
+    ).first()
+
+    if not ecosystem:
+        return []
+
+    stmt = select(
+        entity_recognitions.c.recognized_registry_did,
+        entity_recognitions.c.recognized,
+        entity_recognitions.c.valid_from,
+        entity_recognitions.c.valid_until,
+        Recognition.action,
+        Recognition.resource,
+        Recognition.description
+    ).join(
+        Recognition,
+        entity_recognitions.c.recognition_id == Recognition.id
+    ).where(
+        entity_recognitions.c.entity_id == ecosystem.id,
+        entity_recognitions.c.recognized == True
+    )
+
+    results = db.execute(stmt).fetchall()
+
+    # Filter by temporal validity
+    valid_results = []
+    for r in results:
+        if r.valid_from and r.valid_from > check_time:
+            continue
+        if r.valid_until and r.valid_until < check_time:
+            continue
+        valid_results.append({
+            "recognized_registry_did": r.recognized_registry_did,
+            "action": r.action,
+            "resource": r.resource,
+            "description": r.description,
+            "valid_from": r.valid_from,
+            "valid_until": r.valid_until
+        })
+
+    return valid_results

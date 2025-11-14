@@ -41,7 +41,7 @@ INSERT INTO entity_authorizations (entity_id, authorization_id) VALUES (4, 4);
 
 -- Trust Registry Config
 INSERT INTO trust_registry_config (ecosystem_did, trustregistry_did, egf_did, name, description, controllers, created_at, updated_at) VALUES
-('did:example:ecosystem456', 'did:example:trustregistry123', 'did:example:egf789', 'Ayra Trust Registry', 'Example Trust Registry for the Ayra Trust Network', '["did:example:controller1", "did:example:controller2"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('did:webvh:SCID-ATN:ayra.forum/atn', 'did:webvh:SCID-ATNTR:ayra.forum/atntr', 'did:webvh:SCID-ATNGF:ayra.forum/atngf', 'Ayra Trust Registry', 'Example Trust Registry for the Ayra Trust Network', '["did:example:controller1", "did:example:controller2"]', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Registry Config (for admin UI)
 INSERT INTO registry_config (authority_id, egf_id, name, description, created_at, updated_at) VALUES

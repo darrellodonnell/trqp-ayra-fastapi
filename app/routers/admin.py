@@ -89,6 +89,48 @@ class AuthorizationResponseAdmin(BaseModel):
         from_attributes = True
 
 
+class RecognitionCreate(BaseModel):
+    action: str = Field(..., description="Action (e.g., 'recognize')")
+    resource: str = Field(..., description="Resource (e.g., 'credential', 'entity', 'ecosystem')")
+    description: Optional[str] = Field(None, description="Description of the recognition")
+
+
+class RecognitionUpdate(BaseModel):
+    action: Optional[str] = None
+    resource: Optional[str] = None
+    description: Optional[str] = None
+
+
+class RecognitionResponseAdmin(BaseModel):
+    id: int
+    action: str
+    resource: str
+    description: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class EntityRecognitionCreate(BaseModel):
+    entity_id: int = Field(..., description="ID of the recognizing ecosystem")
+    recognition_id: int = Field(..., description="ID of the recognition type")
+    recognized_registry_did: str = Field(..., description="DID of the recognized registry/ecosystem")
+    recognized: bool = Field(True, description="Whether this is recognized (true) or explicitly not recognized (false)")
+    valid_from: Optional[str] = Field(None, description="ISO 8601 datetime when recognition starts")
+    valid_until: Optional[str] = Field(None, description="ISO 8601 datetime when recognition expires")
+
+
+class EntityRecognitionResponse(BaseModel):
+    recognition_id: int
+    recognized_registry_did: str
+    recognized: bool
+    valid_from: Optional[str]
+    valid_until: Optional[str]
+    action: str
+    resource: str
+    description: Optional[str]
+
+
 class EntityCreate(BaseModel):
     entity_did: str = Field(..., description="DID URI of the entity")
     authority_id: Optional[str] = Field(None, description="DID of the authority/ecosystem (optional for root ecosystems)")
@@ -323,6 +365,43 @@ async def delete_authorization(auth_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Authorization not found")
 
 
+# Recognitions Management
+@router.get("/recognitions", response_model=List[RecognitionResponseAdmin])
+async def list_recognitions_admin(db: Session = Depends(get_db)):
+    """List all recognitions"""
+    return crud.get_recognitions(db)
+
+
+@router.post("/recognitions", response_model=RecognitionResponseAdmin, status_code=status.HTTP_201_CREATED)
+async def create_recognition(recog: RecognitionCreate, db: Session = Depends(get_db)):
+    """Create a new recognition (action+resource pair)"""
+    try:
+        return crud.create_recognition(
+            db,
+            action=recog.action,
+            resource=recog.resource,
+            description=recog.description
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error creating recognition: {str(e)}")
+
+
+@router.put("/recognitions/{recognition_id}", response_model=RecognitionResponseAdmin)
+async def update_recognition(recognition_id: int, recog: RecognitionUpdate, db: Session = Depends(get_db)):
+    """Update a recognition"""
+    updated = crud.update_recognition(db, recognition_id, **recog.dict(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Recognition not found")
+    return updated
+
+
+@router.delete("/recognitions/{recognition_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_recognition(recognition_id: int, db: Session = Depends(get_db)):
+    """Delete a recognition"""
+    if not crud.delete_recognition(db, recognition_id):
+        raise HTTPException(status_code=404, detail="Recognition not found")
+
+
 # Entities Management
 @router.get("/entities/active-authorities", response_model=List[dict])
 async def list_active_authorities(db: Session = Depends(get_db)):
@@ -475,3 +554,75 @@ async def remove_entity_authorization(entity_id: int, auth_id: int, db: Session 
     if not entity:
         raise HTTPException(status_code=404, detail="Entity or authorization not found")
     return entity
+
+
+# Entity Recognition Association Endpoints
+@router.get("/entities/{entity_id}/recognitions", response_model=List[EntityRecognitionResponse])
+async def list_entity_recognitions(entity_id: int, db: Session = Depends(get_db)):
+    """List all recognitions for an entity (ecosystem)"""
+    entity = crud.get_entity(db, entity_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    if entity.entity_type != "ecosystem":
+        raise HTTPException(status_code=400, detail="Only ecosystems can have recognitions")
+
+    recognitions = crud.get_entity_recognitions(db, entity_id)
+    return recognitions
+
+
+@router.post("/entities/{entity_id}/recognitions")
+async def add_entity_recognition(
+    entity_id: int,
+    recog_create: EntityRecognitionCreate,
+    db: Session = Depends(get_db)
+):
+    """Add a recognition to an entity (ecosystem)"""
+    from datetime import datetime
+
+    # Parse datetime strings if provided
+    valid_from = None
+    valid_until = None
+    if recog_create.valid_from:
+        try:
+            valid_from = datetime.fromisoformat(recog_create.valid_from.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid valid_from datetime format")
+
+    if recog_create.valid_until:
+        try:
+            valid_until = datetime.fromisoformat(recog_create.valid_until.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid valid_until datetime format")
+
+    entity = crud.add_entity_recognition(
+        db,
+        entity_id=entity_id,
+        recognition_id=recog_create.recognition_id,
+        recognized_registry_did=recog_create.recognized_registry_did,
+        recognized=recog_create.recognized,
+        valid_from=valid_from,
+        valid_until=valid_until
+    )
+
+    if not entity:
+        raise HTTPException(
+            status_code=404,
+            detail="Entity or recognition not found, or entity is not an ecosystem"
+        )
+
+    return {"message": "Recognition added successfully", "entity_id": entity_id}
+
+
+@router.delete("/entities/{entity_id}/recognitions/{recognition_id}")
+async def remove_entity_recognition(
+    entity_id: int,
+    recognition_id: int,
+    recognized_registry_did: str,
+    db: Session = Depends(get_db)
+):
+    """Remove a recognition from an entity"""
+    entity = crud.remove_entity_recognition(db, entity_id, recognition_id, recognized_registry_did)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity or recognition not found")
+
+    return {"message": "Recognition removed successfully", "entity_id": entity_id}

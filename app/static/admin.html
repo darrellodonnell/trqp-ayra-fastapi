@@ -783,6 +783,7 @@
         <div class="tabs">
             <button class="tab-button active" onclick="showTab('entities')">🏢 Entities</button>
             <button class="tab-button" onclick="showTab('authorizations')">✅ Authorizations</button>
+            <button class="tab-button" onclick="showTab('recognitions')">🤝 Recognitions</button>
             <button class="tab-button" onclick="showTab('registry-config')">⚙️ Registry Config</button>
             <button class="tab-button" onclick="showTab('did-methods')">🔑 DID Methods</button>
             <button class="tab-button" onclick="showTab('assurance-levels')">🛡️ Assurance Levels</button>
@@ -913,6 +914,36 @@
             </div>
         </div>
 
+        <!-- Recognitions Tab -->
+        <div id="recognitions-tab" class="tab-content">
+            <div class="card">
+                <h2>Add Recognition Type</h2>
+                <p style="color: var(--gray-600); margin-bottom: 1rem;">Recognition types define what ecosystems can recognize about other registries.</p>
+                <form id="recognition-form">
+                    <div class="form-group">
+                        <label for="recog-action">Action *</label>
+                        <input type="text" id="recog-action" placeholder="e.g., recognize" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recog-resource">Resource *</label>
+                        <input type="text" id="recog-resource" placeholder="e.g., credential, entity, ecosystem" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="recog-description">Description (Optional)</label>
+                        <textarea id="recog-description" placeholder="Description of the recognition type"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Add Recognition Type</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Recognition Types</h2>
+                <div id="recognitions-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Entities Tab -->
         <div id="entities-tab" class="tab-content active">
             <div class="card">
@@ -1008,6 +1039,64 @@
         </div>
     </div>
 
+    <!-- Recognition Modal -->
+    <div id="recognition-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manage Ecosystem Recognitions</h3>
+                <button class="modal-close" onclick="closeRecognitionModal()">&times;</button>
+            </div>
+
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                <strong style="color: #667eea;">Ecosystem:</strong> <span id="recog-modal-entity-name"></span><br>
+                <strong style="color: #667eea;">DID:</strong> <span id="recog-modal-entity-did"></span>
+            </div>
+
+            <div class="modal-section">
+                <h4>Current Recognitions</h4>
+                <div id="current-recognitions" class="authorization-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h4>Add New Recognition</h4>
+                <form id="add-recognition-form">
+                    <input type="hidden" id="recog-entity-id">
+
+                    <div class="form-group">
+                        <label for="recog-type-select">Recognition Type *</label>
+                        <select id="recog-type-select" required>
+                            <option value="">Select recognition type</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recog-registry-did">Recognized Registry DID *</label>
+                        <input type="text" id="recog-registry-did" placeholder="did:web:example.com" required>
+                        <small style="color: var(--gray-600);">The DID of the registry/ecosystem being recognized</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recog-valid-from">Valid From (Optional)</label>
+                        <input type="datetime-local" id="recog-valid-from">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="recog-valid-until">Valid Until (Optional)</label>
+                        <input type="datetime-local" id="recog-valid-until">
+                    </div>
+
+                    <button type="submit" class="btn-primary">Add Recognition</button>
+                </form>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                <button class="btn-secondary" onclick="closeRecognitionModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Entity Modal -->
     <div id="edit-entity-modal" class="modal">
         <div class="modal-content">
@@ -1099,9 +1188,14 @@
                     loadAuthorizations();
                     loadAuthorizationsForCheckboxes();
                     break;
+                case 'recognitions':
+                    loadRecognitions();
+                    loadRecognitionsForCheckboxes();
+                    break;
                 case 'entities':
                     loadEntities();
                     loadAuthorizationsForCheckboxes();
+                    loadRecognitionsForCheckboxes();
                     loadRegistryConfig(); // Load config to get default authority_id
                     break;
             }
@@ -1499,6 +1593,74 @@
             }
         }
 
+        // Recognitions
+        async function loadRecognitions() {
+            try {
+                const recognitions = await apiCall('/admin/recognitions');
+                const list = document.getElementById('recognitions-list');
+
+                if (recognitions.length === 0) {
+                    list.innerHTML = '<div class="empty-state">No recognition types configured yet.</div>';
+                    return;
+                }
+
+                list.innerHTML = recognitions.map(recog => `
+                    <div class="item">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 1.1em; color: var(--gray-800); margin-bottom: 0.25rem;">
+                                ${recog.action} / ${recog.resource}
+                            </div>
+                            <div style="color: var(--gray-600); font-size: 0.9em;">
+                                ${recog.description || 'No description'}
+                            </div>
+                        </div>
+                        <button class="btn-danger" onclick="deleteRecognition(${recog.id})">Delete</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('recognitions-list').innerHTML =
+                    `<div class="error">Error loading recognitions: ${error.message}</div>`;
+            }
+        }
+
+        async function loadRecognitionsForCheckboxes() {
+            try {
+                const recognitions = await apiCall('/admin/recognitions');
+                window.recognitionsData = recognitions;
+            } catch (error) {
+                console.error('Error loading recognitions:', error);
+            }
+        }
+
+        document.getElementById('recognition-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await apiCall('/admin/recognitions', 'POST', {
+                    action: document.getElementById('recog-action').value,
+                    resource: document.getElementById('recog-resource').value,
+                    description: document.getElementById('recog-description').value || null
+                });
+                showAlert('Recognition type added successfully!');
+                e.target.reset();
+                loadRecognitions();
+                loadRecognitionsForCheckboxes();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function deleteRecognition(id) {
+            if (!confirm('Are you sure you want to delete this recognition type?')) return;
+            try {
+                await apiCall(`/admin/recognitions/${id}`, 'DELETE');
+                showAlert('Recognition type deleted successfully!');
+                loadRecognitions();
+                loadRecognitionsForCheckboxes();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
         // Entities
         async function loadEntities() {
             try {
@@ -1507,6 +1669,21 @@
                 populateAuthorityDropdown('entity-authority');
 
                 const entities = await apiCall('/admin/entities');
+
+                // Load recognitions for each ecosystem entity
+                for (const entity of entities) {
+                    if (entity.entity_type === 'ecosystem') {
+                        try {
+                            entity.recognitions = await apiCall(`/admin/entities/${entity.id}/recognitions`);
+                        } catch (error) {
+                            console.error(`Error loading recognitions for entity ${entity.id}:`, error);
+                            entity.recognitions = [];
+                        }
+                    } else {
+                        entity.recognitions = [];
+                    }
+                }
+
                 const container = document.getElementById('entities-list');
 
                 if (entities.length === 0) {
@@ -1524,6 +1701,7 @@
                                 <th>Type</th>
                                 <th>Status</th>
                                 <th>Authorizations</th>
+                                <th>Recognitions</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -1532,15 +1710,21 @@
                                 <tr>
                                     <td>${e.entity_did}</td>
                                     <td><strong>${e.name || '-'}</strong></td>
-                                    <td>${e.authority_id}</td>
+                                    <td>${e.authority_id || '<em>Root</em>'}</td>
                                     <td>${e.entity_type || '-'}</td>
                                     <td><span class="badge badge-${e.status}">${e.status}</span></td>
                                     <td>
-                                        ${e.authorizations.map(a => `<div>[${a.action}] ${a.resource}</div>`).join(' ') || '-'}
+                                        ${e.authorizations.map(a => `<div style="font-size: 0.85em;">[${a.action}] ${a.resource}</div>`).join('') || '-'}
+                                    </td>
+                                    <td>
+                                        ${e.entity_type === 'ecosystem' && e.recognitions && e.recognitions.length > 0
+                                            ? e.recognitions.map(r => `<div style="font-size: 0.85em;" title="${r.recognized_registry_did}">[${r.action}] ${r.resource} → ${r.recognized_registry_did.substring(0, 25)}...</div>`).join('')
+                                            : (e.entity_type === 'ecosystem' ? '<em style="color: var(--gray-400);">None</em>' : '-')}
                                     </td>
                                     <td class="actions">
                                         <button class="btn-secondary" onclick='openEditEntityModal(${JSON.stringify(e)})'>Edit</button>
-                                        <button class="btn-primary" onclick='openAuthorizationModal(${JSON.stringify(e)})'>Edit Authorizations</button>
+                                        <button class="btn-primary" onclick='openAuthorizationModal(${JSON.stringify(e)})'>Authorizations</button>
+                                        ${e.entity_type === 'ecosystem' ? `<button class="btn-primary" style="background: var(--secondary);" onclick='openRecognitionModal(${JSON.stringify(e)})'>Recognitions</button>` : ''}
                                         <button class="btn-danger" onclick="deleteEntity(${e.id})">Delete</button>
                                     </td>
                                 </tr>
@@ -1783,6 +1967,131 @@
 
                 // Reload modal
                 await loadModalAuthorizations();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Recognition Modal Management
+        let currentEcosystemForRecognitionModal = null;
+
+        async function openRecognitionModal(entity) {
+            if (entity.entity_type !== 'ecosystem') {
+                showAlert('Only ecosystems can have recognitions', 'error');
+                return;
+            }
+
+            currentEcosystemForRecognitionModal = entity;
+
+            // Update modal header info
+            document.getElementById('recog-modal-entity-name').textContent = entity.name || 'Unnamed Ecosystem';
+            document.getElementById('recog-modal-entity-did').textContent = entity.entity_did;
+            document.getElementById('recog-entity-id').value = entity.id;
+
+            // Show modal
+            document.getElementById('recognition-modal').classList.add('active');
+
+            // Load recognitions and populate recognition type dropdown
+            await loadRecognitionTypeDropdown();
+            await loadEntityRecognitions();
+        }
+
+        function closeRecognitionModal() {
+            document.getElementById('recognition-modal').classList.remove('active');
+            currentEcosystemForRecognitionModal = null;
+            document.getElementById('add-recognition-form').reset();
+            loadEntities();
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('recognition-modal');
+            if (e.target === modal) {
+                closeRecognitionModal();
+            }
+        });
+
+        async function loadRecognitionTypeDropdown() {
+            try {
+                const recognitions = await apiCall('/admin/recognitions');
+                const select = document.getElementById('recog-type-select');
+                select.innerHTML = '<option value="">Select recognition type</option>' +
+                    recognitions.map(r => `
+                        <option value="${r.id}">${r.action} / ${r.resource} - ${r.description || 'No description'}</option>
+                    `).join('');
+            } catch (error) {
+                showAlert(`Error loading recognition types: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadEntityRecognitions() {
+            try {
+                const recognitions = await apiCall(`/admin/entities/${currentEcosystemForRecognitionModal.id}/recognitions`);
+                const container = document.getElementById('current-recognitions');
+
+                if (recognitions.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No recognitions configured yet</div>';
+                    return;
+                }
+
+                container.innerHTML = recognitions.map(r => `
+                    <div class="authorization-item">
+                        <div class="authorization-item-info">
+                            <strong>[${r.action}] ${r.resource}</strong>
+                            <small>Registry: ${r.recognized_registry_did}</small>
+                            ${r.valid_from ? `<small>Valid from: ${new Date(r.valid_from).toLocaleDateString()}</small>` : ''}
+                            ${r.valid_until ? `<small>Valid until: ${new Date(r.valid_until).toLocaleDateString()}</small>` : ''}
+                        </div>
+                        <button class="btn-danger" onclick='removeEntityRecognition(${currentEcosystemForRecognitionModal.id}, ${r.recognition_id}, "${r.recognized_registry_did}")'>
+                            Remove
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showAlert(`Error loading recognitions: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('add-recognition-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const formData = {
+                    entity_id: parseInt(document.getElementById('recog-entity-id').value),
+                    recognition_id: parseInt(document.getElementById('recog-type-select').value),
+                    recognized_registry_did: document.getElementById('recog-registry-did').value,
+                    recognized: true
+                };
+
+                // Add optional datetime fields
+                const validFrom = document.getElementById('recog-valid-from').value;
+                const validUntil = document.getElementById('recog-valid-until').value;
+
+                if (validFrom) {
+                    formData.valid_from = new Date(validFrom).toISOString();
+                }
+                if (validUntil) {
+                    formData.valid_until = new Date(validUntil).toISOString();
+                }
+
+                await apiCall(`/admin/entities/${formData.entity_id}/recognitions`, 'POST', formData);
+                showAlert('Recognition added successfully!');
+                e.target.reset();
+                await loadEntityRecognitions();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function removeEntityRecognition(entityId, recognitionId, recognizedRegistryDid) {
+            if (!confirm('Are you sure you want to remove this recognition?')) return;
+
+            try {
+                await apiCall(
+                    `/admin/entities/${entityId}/recognitions/${recognitionId}?recognized_registry_did=${encodeURIComponent(recognizedRegistryDid)}`,
+                    'DELETE'
+                );
+                showAlert('Recognition removed successfully!');
+                await loadEntityRecognitions();
             } catch (error) {
                 showAlert(`Error: ${error.message}`, 'error');
             }
