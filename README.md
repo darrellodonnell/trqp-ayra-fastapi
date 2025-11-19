@@ -98,42 +98,50 @@ cp .env.example .env
 
 ## Quick Start
 
-### 1. Initialize the Database
+### 1. Run the Application
 
-```bash
-python3 init_db.py
-```
-
-This creates the database and seeds it with default data:
-- 4 DID Methods (web, key, peer, sov)
-- 3 Assurance Levels (LOA1, LOA2, LOA3)
-- 4 Authorizations (issue, verify, revoke, register)
-
-### 2. Run the Application
+The application automatically initializes the database on startup.
 
 **Development Mode** (with auto-reload):
 ```bash
-python3 -m app.main
+python3 main.py
 ```
 
 Or using uvicorn directly:
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 **Production Mode**:
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-### 3. Access the Application
+### 2. Access the Application
 
-The API will be available at:
-- **API**: http://localhost:8000
-- **Admin UI**: http://localhost:8000/admin-ui 🆕
-- **Interactive docs (Swagger UI)**: http://localhost:8000/docs
-- **Alternative docs (ReDoc)**: http://localhost:8000/redoc
-- **OpenAPI schema**: http://localhost:8000/openapi.json
+The application runs two separate APIs:
+
+#### Public TRQP API (Root level)
+- **Landing Page**: http://localhost:8000/welcome
+- **API Root**: http://localhost:8000/
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI Spec**: http://localhost:8000/openapi.json
+
+#### Admin API (Under /admin)
+- **Admin UI**: http://localhost:8000/admin/ui 🆕
+- **Admin API Root**: http://localhost:8000/admin/
+- **Swagger UI**: http://localhost:8000/admin/docs
+- **ReDoc**: http://localhost:8000/admin/redoc
+- **OpenAPI Spec**: http://localhost:8000/admin/openapi.json
+
+### Database Initialization
+
+The database is automatically initialized on first run with:
+- 4 DID Methods (web, key, peer, webvh)
+- 3 Assurance Levels (LOA1, LOA2, LOA3)
+- Sample Authorizations and Recognitions
+- Default Trust Registry Configuration
 
 ## API Documentation
 
@@ -195,12 +203,13 @@ curl -X GET "http://localhost:8000/lookups/didMethods?ecosystem_did=did:example:
 
 ### Using the Admin UI
 
-1. Start the server and navigate to http://localhost:8000/admin-ui
+1. Start the server and navigate to http://localhost:8000/admin/ui
 2. Use the tabbed interface to manage:
    - **DID Methods**: Add/remove supported DID methods
    - **Assurance Levels**: Define identity verification levels
    - **Authorizations**: Create action+resource pairs
-   - **Entities**: Register entities with their authorizations
+   - **Recognitions**: Define recognition types for cross-ecosystem trust
+   - **Entities**: Register entities with their authorizations and recognitions
 
 ### Example Workflow
 

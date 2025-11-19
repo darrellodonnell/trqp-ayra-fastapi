@@ -498,22 +498,16 @@ def check_ecosystem_recognition(db: Session, recognizing_ecosystem_did: str,
         entity_recognitions.c.entity_id == ecosystem.id,
         entity_recognitions.c.recognized_registry_did == recognized_registry_did,
         entity_recognitions.c.recognized == True,
+        (entity_recognitions.c.valid_from == None) | (entity_recognitions.c.valid_from <= check_time),
+        (entity_recognitions.c.valid_until == None) | (entity_recognitions.c.valid_until >= check_time),    
         Recognition.action == action,
         Recognition.resource == resource
     )
 
     result = db.execute(stmt).fetchone()
 
-    if not result:
-        return False
-
-    # Check temporal validity
-    if result.valid_from and result.valid_from > check_time:
-        return False
-    if result.valid_until and result.valid_until < check_time:
-        return False
-
-    return True
+    # Temporal validity is already checked in the SQL WHERE clause
+    return result is not None
 
 
 def get_ecosystem_recognitions_list(db: Session, ecosystem_did: str,

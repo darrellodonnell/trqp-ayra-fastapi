@@ -1160,7 +1160,7 @@
     </div>
 
     <script>
-        const API_BASE = '';
+        const API_BASE = '/admin';
 
         // Tab Management
         function showTab(tabName) {
@@ -1250,7 +1250,7 @@
 
         async function loadActiveAuthorities() {
             try {
-                activeAuthorities = await apiCall('/admin/entities/active-authorities');
+                activeAuthorities = await apiCall('/entities/active-authorities');
             } catch (error) {
                 console.error('Error loading active authorities:', error);
                 activeAuthorities = [];
@@ -1290,7 +1290,7 @@
 
         async function loadRegistryConfig() {
             try {
-                const config = await apiCall('/admin/registry-config');
+                const config = await apiCall('/registry-config');
                 registryConfig = config;
 
                 if (config) {
@@ -1351,7 +1351,7 @@
                     return;
                 }
 
-                await apiCall('/admin/registry-config', 'POST', {
+                await apiCall('/registry-config', 'POST', {
                     authority_id: authorityId,
                     egf_id: egfId || null,
                     name: document.getElementById('config-name').value || null,
@@ -1367,7 +1367,7 @@
         // DID Methods
         async function loadDIDMethods() {
             try {
-                const methods = await apiCall('/admin/did-methods');
+                const methods = await apiCall('/did-methods');
                 const container = document.getElementById('did-methods-list');
 
                 if (methods.length === 0) {
@@ -1406,7 +1406,7 @@
         document.getElementById('did-method-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                await apiCall('/admin/did-methods', 'POST', {
+                await apiCall('/did-methods', 'POST', {
                     identifier: document.getElementById('did-method-identifier').value,
                     description: document.getElementById('did-method-description').value || null
                 });
@@ -1421,7 +1421,7 @@
         async function deleteDIDMethod(id) {
             if (!confirm('Are you sure you want to delete this DID method?')) return;
             try {
-                await apiCall(`/admin/did-methods/${id}`, 'DELETE');
+                await apiCall(`/did-methods/${id}`, 'DELETE');
                 showAlert('DID method deleted successfully!');
                 loadDIDMethods();
             } catch (error) {
@@ -1432,7 +1432,7 @@
         // Assurance Levels
         async function loadAssuranceLevels() {
             try {
-                const levels = await apiCall('/admin/assurance-levels');
+                const levels = await apiCall('/assurance-levels');
                 const container = document.getElementById('assurance-levels-list');
 
                 if (levels.length === 0) {
@@ -1475,7 +1475,7 @@
         document.getElementById('assurance-level-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                await apiCall('/admin/assurance-levels', 'POST', {
+                await apiCall('/assurance-levels', 'POST', {
                     identifier: document.getElementById('assurance-identifier').value,
                     name: document.getElementById('assurance-name').value,
                     egf_did: document.getElementById('assurance-egf').value || null,
@@ -1492,7 +1492,7 @@
         async function deleteAssuranceLevel(id) {
             if (!confirm('Are you sure you want to delete this assurance level?')) return;
             try {
-                await apiCall(`/admin/assurance-levels/${id}`, 'DELETE');
+                await apiCall(`/assurance-levels/${id}`, 'DELETE');
                 showAlert('Assurance level deleted successfully!');
                 loadAssuranceLevels();
             } catch (error) {
@@ -1503,7 +1503,7 @@
         // Authorizations
         async function loadAuthorizations() {
             try {
-                const auths = await apiCall('/admin/authorizations');
+                const auths = await apiCall('/authorizations');
                 const container = document.getElementById('authorizations-list');
 
                 if (auths.length === 0) {
@@ -1543,7 +1543,7 @@
 
         async function loadAuthorizationsForCheckboxes() {
             try {
-                const auths = await apiCall('/admin/authorizations');
+                const auths = await apiCall('/authorizations');
                 const container = document.getElementById('entity-authorizations-checkboxes');
 
                 if (auths.length === 0) {
@@ -1567,7 +1567,7 @@
         document.getElementById('authorization-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                await apiCall('/admin/authorizations', 'POST', {
+                await apiCall('/authorizations', 'POST', {
                     action: document.getElementById('auth-action').value,
                     resource: document.getElementById('auth-resource').value,
                     description: document.getElementById('auth-description').value || null
@@ -1584,7 +1584,7 @@
         async function deleteAuthorization(id) {
             if (!confirm('Are you sure you want to delete this authorization?')) return;
             try {
-                await apiCall(`/admin/authorizations/${id}`, 'DELETE');
+                await apiCall(`/authorizations/${id}`, 'DELETE');
                 showAlert('Authorization deleted successfully!');
                 loadAuthorizations();
                 loadAuthorizationsForCheckboxes();
@@ -1596,7 +1596,7 @@
         // Recognitions
         async function loadRecognitions() {
             try {
-                const recognitions = await apiCall('/admin/recognitions');
+                const recognitions = await apiCall('/recognitions');
                 const list = document.getElementById('recognitions-list');
 
                 if (recognitions.length === 0) {
@@ -1625,7 +1625,7 @@
 
         async function loadRecognitionsForCheckboxes() {
             try {
-                const recognitions = await apiCall('/admin/recognitions');
+                const recognitions = await apiCall('/recognitions');
                 window.recognitionsData = recognitions;
             } catch (error) {
                 console.error('Error loading recognitions:', error);
@@ -1635,7 +1635,7 @@
         document.getElementById('recognition-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
-                await apiCall('/admin/recognitions', 'POST', {
+                await apiCall('/recognitions', 'POST', {
                     action: document.getElementById('recog-action').value,
                     resource: document.getElementById('recog-resource').value,
                     description: document.getElementById('recog-description').value || null
@@ -1652,7 +1652,7 @@
         async function deleteRecognition(id) {
             if (!confirm('Are you sure you want to delete this recognition type?')) return;
             try {
-                await apiCall(`/admin/recognitions/${id}`, 'DELETE');
+                await apiCall(`/recognitions/${id}`, 'DELETE');
                 showAlert('Recognition type deleted successfully!');
                 loadRecognitions();
                 loadRecognitionsForCheckboxes();
@@ -1668,13 +1668,13 @@
                 await loadActiveAuthorities();
                 populateAuthorityDropdown('entity-authority');
 
-                const entities = await apiCall('/admin/entities');
+                const entities = await apiCall('/entities');
 
                 // Load recognitions for each ecosystem entity
                 for (const entity of entities) {
                     if (entity.entity_type === 'ecosystem') {
                         try {
-                            entity.recognitions = await apiCall(`/admin/entities/${entity.id}/recognitions`);
+                            entity.recognitions = await apiCall(`/entities/${entity.id}/recognitions`);
                         } catch (error) {
                             console.error(`Error loading recognitions for entity ${entity.id}:`, error);
                             entity.recognitions = [];
@@ -1753,7 +1753,7 @@
                     return;
                 }
 
-                await apiCall('/admin/entities', 'POST', {
+                await apiCall('/entities', 'POST', {
                     entity_did: document.getElementById('entity-did').value,
                     authority_id: authorityId || null,
                     name: document.getElementById('entity-name').value || null,
@@ -1774,7 +1774,7 @@
         async function deleteEntity(id) {
             if (!confirm('Are you sure you want to delete this entity?')) return;
             try {
-                await apiCall(`/admin/entities/${id}`, 'DELETE');
+                await apiCall(`/entities/${id}`, 'DELETE');
                 showAlert('Entity deleted successfully!');
                 loadEntities();
             } catch (error) {
@@ -1834,7 +1834,7 @@
                     return;
                 }
 
-                await apiCall(`/admin/entities/${entityId}`, 'PUT', {
+                await apiCall(`/entities/${entityId}`, 'PUT', {
                     entity_did: entityDid,
                     authority_id: authorityId || null,
                     name: document.getElementById('edit-entity-name').value || null,
@@ -1888,7 +1888,7 @@
             try {
                 // Load all authorizations if not already loaded
                 if (allAvailableAuthorizations.length === 0) {
-                    allAvailableAuthorizations = await apiCall('/admin/authorizations');
+                    allAvailableAuthorizations = await apiCall('/authorizations');
                 }
 
                 // Get current entity authorizations
@@ -1940,11 +1940,11 @@
 
         async function addAuthorization(entityId, authId) {
             try {
-                await apiCall(`/admin/entities/${entityId}/authorizations/${authId}`, 'POST');
+                await apiCall(`/entities/${entityId}/authorizations/${authId}`, 'POST');
                 showAlert('Authorization added successfully!');
 
                 // Reload entity data
-                const updatedEntity = await apiCall(`/admin/entities/${entityId}`);
+                const updatedEntity = await apiCall(`/entities/${entityId}`);
                 currentEntityForModal = updatedEntity;
 
                 // Reload modal
@@ -1958,11 +1958,11 @@
             if (!confirm('Are you sure you want to remove this authorization?')) return;
 
             try {
-                await apiCall(`/admin/entities/${entityId}/authorizations/${authId}`, 'DELETE');
+                await apiCall(`/entities/${entityId}/authorizations/${authId}`, 'DELETE');
                 showAlert('Authorization removed successfully!');
 
                 // Reload entity data
-                const updatedEntity = await apiCall(`/admin/entities/${entityId}`);
+                const updatedEntity = await apiCall(`/entities/${entityId}`);
                 currentEntityForModal = updatedEntity;
 
                 // Reload modal
@@ -2013,7 +2013,7 @@
 
         async function loadRecognitionTypeDropdown() {
             try {
-                const recognitions = await apiCall('/admin/recognitions');
+                const recognitions = await apiCall('/recognitions');
                 const select = document.getElementById('recog-type-select');
                 select.innerHTML = '<option value="">Select recognition type</option>' +
                     recognitions.map(r => `
@@ -2026,7 +2026,7 @@
 
         async function loadEntityRecognitions() {
             try {
-                const recognitions = await apiCall(`/admin/entities/${currentEcosystemForRecognitionModal.id}/recognitions`);
+                const recognitions = await apiCall(`/entities/${currentEcosystemForRecognitionModal.id}/recognitions`);
                 const container = document.getElementById('current-recognitions');
 
                 if (recognitions.length === 0) {
@@ -2073,7 +2073,7 @@
                     formData.valid_until = new Date(validUntil).toISOString();
                 }
 
-                await apiCall(`/admin/entities/${formData.entity_id}/recognitions`, 'POST', formData);
+                await apiCall(`/entities/${formData.entity_id}/recognitions`, 'POST', formData);
                 showAlert('Recognition added successfully!');
                 e.target.reset();
                 await loadEntityRecognitions();
@@ -2087,7 +2087,7 @@
 
             try {
                 await apiCall(
-                    `/admin/entities/${entityId}/recognitions/${recognitionId}?recognized_registry_did=${encodeURIComponent(recognizedRegistryDid)}`,
+                    `/entities/${entityId}/recognitions/${recognitionId}?recognized_registry_did=${encodeURIComponent(recognizedRegistryDid)}`,
                     'DELETE'
                 );
                 showAlert('Recognition removed successfully!');

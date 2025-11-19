@@ -92,7 +92,7 @@ class TrqpAuthorizationResponse(BaseModel):
     authority_id: str = Field(..., description="The id of the Authority entity")
     action: str = Field(..., description="The action that the query is checking Authorization for")
     resource: str = Field(..., description="The resource that the query is checking Authorization for")
-    assertion_verified: bool = Field(..., description="True if the assertion has been verified")
+    authorized: bool = Field(..., description="True if the assertion has been verified")
     time_requested: Optional[datetime] = Field(None, description="The server time that was requested")
     time_evaluated: datetime = Field(..., description="The server time that was used in the query")
     message: Optional[str] = Field(None, description="Additional details about the assertion")

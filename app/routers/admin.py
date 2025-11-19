@@ -13,7 +13,7 @@ from app.database import get_db
 from app import crud
 
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+router = APIRouter(tags=["admin"])
 
 
 # Pydantic schemas for admin operations

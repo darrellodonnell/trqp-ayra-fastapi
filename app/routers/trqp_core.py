@@ -156,7 +156,7 @@ async def query_recognition(query: TrqpRecognitionQuery, db: Session = Depends(g
     },
     summary="Queries registry for Authorization, by an Ecosystem, of an Entity"
 )
-async def query_authorization(query: TrqpAuthorizationQuery) -> TrqpAuthorizationResponse:
+async def query_authorization(query: TrqpAuthorizationQuery, db: Session = Depends(get_db)) -> TrqpAuthorizationResponse:
     """
     Queries the trust registry to determine if an entity has authorization in an ecosystem.
 
@@ -165,6 +165,7 @@ async def query_authorization(query: TrqpAuthorizationQuery) -> TrqpAuthorizatio
 
     Args:
         query: TrqpAuthorizationQuery containing entity_id, authority_id, action, resource, and optional context
+        db: Database session
 
     Returns:
         TrqpAuthorizationResponse indicating whether the authorization is verified
@@ -185,10 +186,7 @@ async def query_authorization(query: TrqpAuthorizationQuery) -> TrqpAuthorizatio
         except (ValueError, AttributeError):
             pass
 
-    # TODO: Implement actual authorization logic
-    # This is a stub implementation that returns a default response
-
-    # Example: Check if entity_id and authority_id are valid DIDs
+    # Validate DIDs
     if not query.entity_id.startswith("did:"):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -201,15 +199,83 @@ async def query_authorization(query: TrqpAuthorizationQuery) -> TrqpAuthorizatio
             }
         )
 
-    # Stub response - in production, query your database/registry
+    if not query.authority_id.startswith("did:"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "type": "https://example.com/errors/authority-not-found",
+                "title": "Authority Not Found",
+                "status": 404,
+                "detail": f"Authority with ID '{query.authority_id}' not found in the trust registry",
+                "instance": "/authorization"
+            }
+        )
+
+    # Check if the entity exists
+    entity = crud.get_entity_by_did(db, query.entity_id)
+    if not entity:
+        return TrqpAuthorizationResponse(
+            entity_id=query.entity_id,
+            authority_id=query.authority_id,
+            action=query.action,
+            resource=query.resource,
+            authorized=False,
+            time_requested=time_requested,
+            time_evaluated=time_evaluated,
+            message=f"Entity '{query.entity_id}' not found in the trust registry",
+            context=query.context
+        )
+
+    # Check if the entity's authority matches the queried authority
+    if entity.authority_id != query.authority_id:
+        return TrqpAuthorizationResponse(
+            entity_id=query.entity_id,
+            authority_id=query.authority_id,
+            action=query.action,
+            resource=query.resource,
+            authorized=False,
+            time_requested=time_requested,
+            time_evaluated=time_evaluated,
+            message=f"Entity '{query.entity_id}' is not governed by authority '{query.authority_id}'",
+            context=query.context
+        )
+
+    # Check if entity is active
+    if entity.status != "active":
+        return TrqpAuthorizationResponse(
+            entity_id=query.entity_id,
+            authority_id=query.authority_id,
+            action=query.action,
+            resource=query.resource,
+            authorized=False,
+            time_requested=time_requested,
+            time_evaluated=time_evaluated,
+            message=f"Entity '{query.entity_id}' is not active (status: {entity.status})",
+            context=query.context
+        )
+
+    # Get entity authorizations
+    authorizations = crud.get_entity_authorizations_list(db, query.entity_id, query.authority_id)
+
+    # Check if entity has the requested authorization
+    has_authorization = any(
+        auth.action == query.action and auth.resource == query.resource
+        for auth in authorizations
+    )
+
+    if has_authorization:
+        message = f"Entity '{query.entity_id}' is authorized by '{query.authority_id}' for action '{query.action}' on resource '{query.resource}'"
+    else:
+        message = f"Entity '{query.entity_id}' is NOT authorized by '{query.authority_id}' for action '{query.action}' on resource '{query.resource}'"
+
     return TrqpAuthorizationResponse(
         entity_id=query.entity_id,
         authority_id=query.authority_id,
         action=query.action,
         resource=query.resource,
-        assertion_verified=False,  # Default to not verified - implement your logic here
+        authorized=has_authorization,
         time_requested=time_requested,
         time_evaluated=time_evaluated,
-        message="This is a stub implementation. Implement authorization logic.",
+        message=message,
         context=query.context
     )

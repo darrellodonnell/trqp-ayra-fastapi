@@ -219,12 +219,12 @@ def seed_default_data():
             AssuranceLevel(
                 identifier="urn:assurance:loa1",
                 name="LOA1",
-                description="Level of Assurance 1 - Basic identity verification"
+                description="Level of Assurance 1 - Basic"
             ),
             AssuranceLevel(
                 identifier="urn:assurance:loa2",
                 name="LOA2",
-                description="Level of Assurance 2 - Enhanced identity verification with document validation"
+                description="Level of Assurance 2 - Enhanced identity verification with digital document validation"
             ),
             AssuranceLevel(
                 identifier="urn:assurance:loa3",
@@ -262,7 +262,7 @@ def seed_default_data():
         # Add default recognitions
         recognitions = [
             Recognition(
-                action="recognize-of",
+                action="recognize",
                 resource="ecosystem",
                 description="Recognition of other ecosystems and their governance"
             ),
