@@ -1,0 +1,20 @@
+meta {
+  name: List Authorizations that this Entity has
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/entities/:entity_did/authorizations
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~ecosystem_did: 
+  ~time: 
+}
+
+params:path {
+  entity_did: 
+}

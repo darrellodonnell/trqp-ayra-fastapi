@@ -1,0 +1,15 @@
+meta {
+  name: Retrieve Trust Registry Metadata
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/metadata
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~egf_did: 
+}

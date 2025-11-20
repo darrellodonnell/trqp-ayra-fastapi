@@ -1,0 +1,21 @@
+meta {
+  name: Queries registry for Authorization, by an Ecosystem, of an Entity
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/authorization
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "entity_id": "",
+    "authority_id": "",
+    "action": "",
+    "resource": "",
+    "context": ""
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Queries registry for recognition, by an ecosystem, of another ecosystem
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/recognition
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "entity_id": "",
+    "authority_id": "",
+    "action": "",
+    "resource": "",
+    "context": ""
+  }
+}

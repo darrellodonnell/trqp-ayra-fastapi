@@ -1,0 +1,15 @@
+meta {
+  name: Lookup Supported Assurance Levels
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/lookups/assuranceLevels
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~ecosystem_did: 
+}

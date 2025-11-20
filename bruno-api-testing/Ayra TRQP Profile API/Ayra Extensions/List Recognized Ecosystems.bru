@@ -1,0 +1,19 @@
+meta {
+  name: List Recognized Ecosystems
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/ecosystems/:ecosystem_did/recognitions
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~time: 
+}
+
+params:path {
+  ecosystem_did: 
+}

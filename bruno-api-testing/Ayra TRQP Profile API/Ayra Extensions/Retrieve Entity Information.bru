@@ -1,0 +1,15 @@
+meta {
+  name: Retrieve Entity Information
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/entities/:entity_id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  entity_id: 
+}
