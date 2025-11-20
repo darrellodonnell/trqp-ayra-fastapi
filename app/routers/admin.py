@@ -112,7 +112,6 @@ class RecognitionResponseAdmin(BaseModel):
 
 
 class EntityRecognitionCreate(BaseModel):
-    entity_id: int = Field(..., description="ID of the recognizing ecosystem")
     recognition_id: int = Field(..., description="ID of the recognition type")
     recognized_registry_did: str = Field(..., description="DID of the recognized registry/ecosystem")
     recognized: bool = Field(True, description="Whether this is recognized (true) or explicitly not recognized (false)")
@@ -579,6 +578,36 @@ async def add_entity_recognition(
     """Add a recognition to an entity (ecosystem)"""
     from datetime import datetime
 
+    # Get the entity to check its DID
+    entity = crud.get_entity(db, entity_id)
+    if not entity:
+        raise HTTPException(
+            status_code=404,
+            detail="Entity not found"
+        )
+
+    # Validate that the entity is an ecosystem
+    if entity.entity_type != "ecosystem":
+        raise HTTPException(
+            status_code=400,
+            detail="Only ecosystems can have recognitions"
+        )
+
+    # Prevent self-reference
+    if entity.entity_did == recog_create.recognized_registry_did:
+        raise HTTPException(
+            status_code=400,
+            detail="An entity cannot recognize itself"
+        )
+
+    # Validate that the recognized registry DID exists in the system
+    recognized_entity = crud.get_entity_by_did(db, recog_create.recognized_registry_did)
+    if not recognized_entity:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Recognized registry DID '{recog_create.recognized_registry_did}' does not exist in the system"
+        )
+
     # Parse datetime strings if provided
     valid_from = None
     valid_until = None
@@ -607,7 +636,7 @@ async def add_entity_recognition(
     if not entity:
         raise HTTPException(
             status_code=404,
-            detail="Entity or recognition not found, or entity is not an ecosystem"
+            detail="Entity or recognition not found"
         )
 
     return {"message": "Recognition added successfully", "entity_id": entity_id}
@@ -626,3 +655,94 @@ async def remove_entity_recognition(
         raise HTTPException(status_code=404, detail="Entity or recognition not found")
 
     return {"message": "Recognition removed successfully", "entity_id": entity_id}
+
+
+# ===== TRQP Endpoints Admin =====
+
+class TrqpEndpointCreate(BaseModel):
+    name: str = Field(..., description="Friendly name for the TRQP endpoint")
+    base_url: str = Field(..., description="Base URL of the TRQP API")
+    description: Optional[str] = Field(None, description="Description of the endpoint")
+    is_active: bool = Field(True, description="Whether the endpoint is active")
+
+
+class TrqpEndpointUpdate(BaseModel):
+    name: Optional[str] = None
+    base_url: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class TrqpEndpointResponse(BaseModel):
+    id: int
+    name: str
+    base_url: str
+    description: Optional[str]
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/trqp-endpoints", response_model=List[TrqpEndpointResponse])
+async def list_trqp_endpoints(
+    active_only: bool = False,
+    db: Session = Depends(get_db)
+):
+    """List all TRQP endpoints"""
+    endpoints = crud.get_trqp_endpoints(db, active_only=active_only)
+    return endpoints
+
+
+@router.get("/trqp-endpoints/{endpoint_id}", response_model=TrqpEndpointResponse)
+async def get_trqp_endpoint(
+    endpoint_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific TRQP endpoint"""
+    endpoint = crud.get_trqp_endpoint(db, endpoint_id)
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="TRQP endpoint not found")
+    return endpoint
+
+
+@router.post("/trqp-endpoints", response_model=TrqpEndpointResponse, status_code=status.HTTP_201_CREATED)
+async def create_trqp_endpoint(
+    endpoint_data: TrqpEndpointCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new TRQP endpoint"""
+    endpoint = crud.create_trqp_endpoint(
+        db,
+        name=endpoint_data.name,
+        base_url=endpoint_data.base_url,
+        description=endpoint_data.description,
+        is_active=endpoint_data.is_active
+    )
+    return endpoint
+
+
+@router.put("/trqp-endpoints/{endpoint_id}", response_model=TrqpEndpointResponse)
+async def update_trqp_endpoint(
+    endpoint_id: int,
+    endpoint_data: TrqpEndpointUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a TRQP endpoint"""
+    update_data = endpoint_data.dict(exclude_unset=True)
+    endpoint = crud.update_trqp_endpoint(db, endpoint_id, **update_data)
+    if not endpoint:
+        raise HTTPException(status_code=404, detail="TRQP endpoint not found")
+    return endpoint
+
+
+@router.delete("/trqp-endpoints/{endpoint_id}")
+async def delete_trqp_endpoint(
+    endpoint_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a TRQP endpoint"""
+    success = crud.delete_trqp_endpoint(db, endpoint_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="TRQP endpoint not found")
+    return {"message": "TRQP endpoint deleted successfully"}

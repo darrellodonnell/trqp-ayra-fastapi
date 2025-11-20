@@ -8,6 +8,7 @@ from datetime import datetime
 from app.database import (
     DIDMethod, AssuranceLevel, Authorization, Entity,
     Recognition, EcosystemRecognition, TrustRegistryConfig,
+    TrqpEndpoint,
     entity_recognitions
 )
 
@@ -561,3 +562,59 @@ def get_ecosystem_recognitions_list(db: Session, ecosystem_did: str,
         })
 
     return valid_results
+
+
+# TRQP Endpoints CRUD
+def get_trqp_endpoints(db: Session, active_only: bool = False) -> List[TrqpEndpoint]:
+    """Get all TRQP endpoints, optionally filtered by active status"""
+    query = db.query(TrqpEndpoint)
+    if active_only:
+        query = query.filter(TrqpEndpoint.is_active == True)
+    return query.order_by(TrqpEndpoint.name).all()
+
+
+def get_trqp_endpoint(db: Session, endpoint_id: int) -> Optional[TrqpEndpoint]:
+    """Get a specific TRQP endpoint by ID"""
+    return db.query(TrqpEndpoint).filter(TrqpEndpoint.id == endpoint_id).first()
+
+
+def create_trqp_endpoint(db: Session, name: str, base_url: str,
+                         description: Optional[str] = None,
+                         is_active: bool = True) -> TrqpEndpoint:
+    """Create a new TRQP endpoint"""
+    endpoint = TrqpEndpoint(
+        name=name,
+        base_url=base_url.rstrip('/'),  # Remove trailing slash if present
+        description=description,
+        is_active=is_active
+    )
+    db.add(endpoint)
+    db.commit()
+    db.refresh(endpoint)
+    return endpoint
+
+
+def update_trqp_endpoint(db: Session, endpoint_id: int, **kwargs) -> Optional[TrqpEndpoint]:
+    """Update a TRQP endpoint"""
+    endpoint = get_trqp_endpoint(db, endpoint_id)
+    if endpoint:
+        # Normalize base_url if provided
+        if 'base_url' in kwargs and kwargs['base_url']:
+            kwargs['base_url'] = kwargs['base_url'].rstrip('/')
+
+        for key, value in kwargs.items():
+            if hasattr(endpoint, key):
+                setattr(endpoint, key, value)
+        db.commit()
+        db.refresh(endpoint)
+    return endpoint
+
+
+def delete_trqp_endpoint(db: Session, endpoint_id: int) -> bool:
+    """Delete a TRQP endpoint"""
+    endpoint = get_trqp_endpoint(db, endpoint_id)
+    if endpoint:
+        db.delete(endpoint)
+        db.commit()
+        return True
+    return False

@@ -787,6 +787,8 @@
             <button class="tab-button" onclick="showTab('registry-config')">⚙️ Registry Config</button>
             <button class="tab-button" onclick="showTab('did-methods')">🔑 DID Methods</button>
             <button class="tab-button" onclick="showTab('assurance-levels')">🛡️ Assurance Levels</button>
+            <button class="tab-button" onclick="showTab('trqp-endpoints')">🌐 TRQP Endpoints</button>
+            <button class="tab-button" onclick="showTab('trqp-testing')">🧪 TRQP Testing</button>
         </div>
 
         <!-- Registry Config Tab -->
@@ -881,6 +883,78 @@
                 <h2>Assurance Levels</h2>
                 <div id="assurance-levels-list">
                     <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRQP Endpoints Tab -->
+        <div id="trqp-endpoints-tab" class="tab-content">
+            <div class="card">
+                <h2>Add TRQP Endpoint</h2>
+                <form id="trqp-endpoint-form">
+                    <div class="form-group">
+                        <label for="trqp-endpoint-name">Name *</label>
+                        <input type="text" id="trqp-endpoint-name" placeholder="e.g., Production Registry" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="trqp-endpoint-base-url">Base URL *</label>
+                        <input type="url" id="trqp-endpoint-base-url" placeholder="https://registry.example.com" required>
+                        <small style="color: var(--gray-600);">The base URL of the TRQP API (without trailing slash)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="trqp-endpoint-description">Description (Optional)</label>
+                        <textarea id="trqp-endpoint-description" placeholder="Description of the endpoint"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="trqp-endpoint-active" checked>
+                            Active
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-primary">Add TRQP Endpoint</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>TRQP Endpoints</h2>
+                <div id="trqp-endpoints-list">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRQP Testing Tab -->
+        <div id="trqp-testing-tab" class="tab-content">
+            <div class="card">
+                <h2>Test TRQP Authorization Query</h2>
+                <form id="trqp-test-form">
+                    <div class="form-group">
+                        <label for="test-endpoint-select">TRQP Endpoint *</label>
+                        <select id="test-endpoint-select" required>
+                            <option value="">Select endpoint to test</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="test-entity-did">Entity DID *</label>
+                        <input type="text" id="test-entity-did" placeholder="did:example:entity123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="test-authority-did">Authority DID *</label>
+                        <input type="text" id="test-authority-did" placeholder="did:example:authority123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="test-authorization-select">Authorization *</label>
+                        <select id="test-authorization-select" required>
+                            <option value="">Select authorization to test</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Run Test</button>
+                </form>
+            </div>
+
+            <div class="card" id="test-results-card" style="display: none;">
+                <h2>Test Results</h2>
+                <div id="test-results">
                 </div>
             </div>
         </div>
@@ -1073,8 +1147,10 @@
 
                     <div class="form-group">
                         <label for="recog-registry-did">Recognized Registry DID *</label>
-                        <input type="text" id="recog-registry-did" placeholder="did:web:example.com" required>
-                        <small style="color: var(--gray-600);">The DID of the registry/ecosystem being recognized</small>
+                        <select id="recog-registry-did" required>
+                            <option value="">Select entity to recognize</option>
+                        </select>
+                        <small style="color: var(--gray-600);">The entity being recognized (cannot be self)</small>
                     </div>
 
                     <div class="form-group">
@@ -1197,6 +1273,12 @@
                     loadAuthorizationsForCheckboxes();
                     loadRecognitionsForCheckboxes();
                     loadRegistryConfig(); // Load config to get default authority_id
+                    break;
+                case 'trqp-endpoints':
+                    loadTrqpEndpoints();
+                    break;
+                case 'trqp-testing':
+                    loadTrqpTestingData();
                     break;
             }
         }
@@ -1975,6 +2057,29 @@
         // Recognition Modal Management
         let currentEcosystemForRecognitionModal = null;
 
+        async function loadEligibleEntitiesForRecognition(currentEntityDid) {
+            try {
+                const response = await fetch('/admin/entities');
+                const entities = await response.json();
+
+                const select = document.getElementById('recog-registry-did');
+                select.innerHTML = '<option value="">Select entity to recognize</option>';
+
+                // Filter out the current entity (no self-reference) and populate dropdown
+                entities
+                    .filter(e => e.entity_did !== currentEntityDid)
+                    .forEach(e => {
+                        const option = document.createElement('option');
+                        option.value = e.entity_did;
+                        option.textContent = `${e.name || 'Unnamed'} (${e.entity_did})`;
+                        select.appendChild(option);
+                    });
+            } catch (error) {
+                console.error('Error loading entities:', error);
+                showAlert('Failed to load eligible entities', 'error');
+            }
+        }
+
         async function openRecognitionModal(entity) {
             if (entity.entity_type !== 'ecosystem') {
                 showAlert('Only ecosystems can have recognitions', 'error');
@@ -1991,8 +2096,9 @@
             // Show modal
             document.getElementById('recognition-modal').classList.add('active');
 
-            // Load recognitions and populate recognition type dropdown
+            // Load recognitions, populate recognition type dropdown, and load eligible entities
             await loadRecognitionTypeDropdown();
+            await loadEligibleEntitiesForRecognition(entity.entity_did);
             await loadEntityRecognitions();
         }
 
@@ -2055,8 +2161,8 @@
         document.getElementById('add-recognition-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
+                const entityId = parseInt(document.getElementById('recog-entity-id').value);
                 const formData = {
-                    entity_id: parseInt(document.getElementById('recog-entity-id').value),
                     recognition_id: parseInt(document.getElementById('recog-type-select').value),
                     recognized_registry_did: document.getElementById('recog-registry-did').value,
                     recognized: true
@@ -2073,7 +2179,7 @@
                     formData.valid_until = new Date(validUntil).toISOString();
                 }
 
-                await apiCall(`/entities/${formData.entity_id}/recognitions`, 'POST', formData);
+                await apiCall(`/entities/${entityId}/recognitions`, 'POST', formData);
                 showAlert('Recognition added successfully!');
                 e.target.reset();
                 await loadEntityRecognitions();
@@ -2096,6 +2202,216 @@
                 showAlert(`Error: ${error.message}`, 'error');
             }
         }
+
+        // ===== TRQP Endpoints Functions =====
+
+        async function loadTrqpEndpoints() {
+            try {
+                const endpoints = await apiCall('/trqp-endpoints');
+                const container = document.getElementById('trqp-endpoints-list');
+
+                if (endpoints.length === 0) {
+                    container.innerHTML = '<p style="color: var(--gray-500);">No TRQP endpoints configured yet.</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>Name</th><th>Base URL</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+
+                endpoints.forEach(endpoint => {
+                    const statusBadge = endpoint.is_active
+                        ? '<span style="color: var(--success); font-weight: 500;">✓ Active</span>'
+                        : '<span style="color: var(--gray-500);">○ Inactive</span>';
+
+                    html += `
+                        <tr>
+                            <td><strong>${endpoint.name}</strong></td>
+                            <td><code style="font-size: 12px;">${endpoint.base_url}</code></td>
+                            <td>${endpoint.description || '<span style="color: var(--gray-400);">—</span>'}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn-small" onclick="deleteTrqpEndpoint(${endpoint.id}, '${endpoint.name}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                document.getElementById('trqp-endpoints-list').innerHTML =
+                    `<p style="color: var(--error);">Error loading endpoints: ${error.message}</p>`;
+            }
+        }
+
+        document.getElementById('trqp-endpoint-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const formData = {
+                    name: document.getElementById('trqp-endpoint-name').value,
+                    base_url: document.getElementById('trqp-endpoint-base-url').value,
+                    description: document.getElementById('trqp-endpoint-description').value || null,
+                    is_active: document.getElementById('trqp-endpoint-active').checked
+                };
+
+                await apiCall('/trqp-endpoints', 'POST', formData);
+                showAlert('TRQP endpoint added successfully!');
+                e.target.reset();
+                document.getElementById('trqp-endpoint-active').checked = true;
+                await loadTrqpEndpoints();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function deleteTrqpEndpoint(id, name) {
+            if (!confirm(`Are you sure you want to delete endpoint "${name}"?`)) return;
+
+            try {
+                await apiCall(`/trqp-endpoints/${id}`, 'DELETE');
+                showAlert('Endpoint deleted successfully!');
+                await loadTrqpEndpoints();
+            } catch (error) {
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // ===== TRQP Testing Functions =====
+
+        async function loadTrqpTestingData() {
+            try {
+                // Load endpoints for dropdown
+                const endpoints = await apiCall('/trqp-endpoints?active_only=true');
+                const endpointSelect = document.getElementById('test-endpoint-select');
+                endpointSelect.innerHTML = '<option value="">Select endpoint to test</option>';
+
+                endpoints.forEach(endpoint => {
+                    const option = document.createElement('option');
+                    option.value = endpoint.base_url;
+                    option.textContent = `${endpoint.name} (${endpoint.base_url})`;
+                    endpointSelect.appendChild(option);
+                });
+
+                // Load authorizations for dropdown
+                const authorizations = await apiCall('/authorizations');
+                const authSelect = document.getElementById('test-authorization-select');
+                authSelect.innerHTML = '<option value="">Select authorization to test</option>';
+
+                authorizations.forEach(auth => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({ action: auth.action, resource: auth.resource });
+                    option.textContent = `${auth.action} : ${auth.resource}`;
+                    if (auth.description) {
+                        option.textContent += ` (${auth.description})`;
+                    }
+                    authSelect.appendChild(option);
+                });
+            } catch (error) {
+                showAlert(`Error loading test data: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('trqp-test-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const baseUrl = document.getElementById('test-endpoint-select').value;
+            const entityDid = document.getElementById('test-entity-did').value;
+            const authorityDid = document.getElementById('test-authority-did').value;
+            const authData = JSON.parse(document.getElementById('test-authorization-select').value);
+
+            try {
+                // Make TRQP authorization query to external endpoint
+                const queryData = {
+                    entity_id: entityDid,
+                    authority_id: authorityDid,
+                    action: authData.action,
+                    resource: authData.resource
+                };
+
+                const response = await fetch(`${baseUrl}/authorization`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(queryData)
+                });
+
+                const result = await response.json();
+
+                // Display results
+                const resultsCard = document.getElementById('test-results-card');
+                const resultsDiv = document.getElementById('test-results');
+
+                resultsCard.style.display = 'block';
+
+                const statusColor = result.authorized ? 'var(--success)' : 'var(--error)';
+                const statusIcon = result.authorized ? '✓' : '✗';
+                const statusText = result.authorized ? 'AUTHORIZED' : 'NOT AUTHORIZED';
+
+                let html = `
+                    <div style="padding: 20px; background: ${result.authorized ? 'var(--success-bg)' : 'var(--error-bg)'}; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="color: ${statusColor}; margin: 0;">${statusIcon} ${statusText}</h3>
+                    </div>
+
+                    <table>
+                        <tr>
+                            <th style="width: 200px;">Endpoint</th>
+                            <td><code>${baseUrl}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Entity DID</th>
+                            <td><code>${result.entity_id}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Authority DID</th>
+                            <td><code>${result.authority_id}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Action</th>
+                            <td><strong>${result.action}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Resource</th>
+                            <td><strong>${result.resource}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Time Evaluated</th>
+                            <td>${result.time_evaluated || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <th>Message</th>
+                            <td>${result.message || 'N/A'}</td>
+                        </tr>
+                    </table>
+                `;
+
+                if (result.context) {
+                    html += `
+                        <h4 style="margin-top: 20px;">Context</h4>
+                        <pre style="background: var(--gray-100); padding: 15px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(result.context, null, 2)}</pre>
+                    `;
+                }
+
+                resultsDiv.innerHTML = html;
+
+                if (result.authorized) {
+                    showAlert('Authorization test passed!', 'success');
+                } else {
+                    showAlert('Authorization test failed', 'warning');
+                }
+            } catch (error) {
+                showAlert(`Error running test: ${error.message}`, 'error');
+                const resultsCard = document.getElementById('test-results-card');
+                const resultsDiv = document.getElementById('test-results');
+
+                resultsCard.style.display = 'block';
+                resultsDiv.innerHTML = `
+                    <div style="padding: 20px; background: var(--error-bg); border-radius: 8px; color: var(--error);">
+                        <h3>Test Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
 
         // Initial Load
         document.addEventListener('DOMContentLoaded', () => {

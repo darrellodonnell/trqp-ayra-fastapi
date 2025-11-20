@@ -35,7 +35,7 @@ entity_recognitions = Table(
     Base.metadata,
     Column('entity_id', Integer, ForeignKey('entities.id'), primary_key=True),
     Column('recognition_id', Integer, ForeignKey('recognitions.id'), primary_key=True),
-    Column('recognized_registry_did', String, nullable=False),  # The registry being recognized
+    Column('recognized_registry_did', String, nullable=False, primary_key=True),  # The registry being recognized
     Column('recognized', Boolean, default=True),  # Whether it's recognized or not
     Column('valid_from', DateTime, nullable=True),  # When recognition starts
     Column('valid_until', DateTime, nullable=True),  # When recognition expires
@@ -182,6 +182,19 @@ class RegistryConfig(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class TrqpEndpoint(Base):
+    """TRQP endpoints for testing"""
+    __tablename__ = "trqp_endpoints"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Friendly name for the endpoint
+    base_url = Column(String, nullable=False)  # Base URL of the TRQP API
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 def get_db():
     """Dependency for getting database session"""
     db = SessionLocal()
@@ -242,7 +255,7 @@ def seed_default_data():
                 description="Authorization to issue verifiable credentials"
             ),
             Authorization(
-                action="manager-issuers",
+                action="manage-issuers",
                 resource="ayracard:businesscard",
                 description="Authorization to managed Issuers in their ecosystem"
             ),
