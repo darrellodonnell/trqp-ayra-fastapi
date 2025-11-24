@@ -746,3 +746,69 @@ async def delete_trqp_endpoint(
     if not success:
         raise HTTPException(status_code=404, detail="TRQP endpoint not found")
     return {"message": "TRQP endpoint deleted successfully"}
+
+
+# ===== TRQP Proxy (to avoid CORS issues) =====
+
+class TrqpProxyRequest(BaseModel):
+    base_url: str = Field(..., description="Base URL of the TRQP endpoint")
+    entity_id: str = Field(..., description="Entity DID to query")
+    authority_id: str = Field(..., description="Authority DID")
+    action: str = Field(..., description="Action to check")
+    resource: str = Field(..., description="Resource to check")
+
+
+@router.post("/trqp-proxy/authorization")
+async def proxy_trqp_authorization(request: TrqpProxyRequest):
+    """
+    Proxy a TRQP authorization request to avoid CORS issues.
+    Makes the request server-side and returns the result.
+    """
+    import httpx
+
+    target_url = f"{request.base_url.rstrip('/')}/authorization"
+
+    payload = {
+        "entity_id": request.entity_id,
+        "authority_id": request.authority_id,
+        "action": request.action,
+        "resource": request.resource
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                target_url,
+                json=payload,
+                headers={"Content-Type": "application/json"}
+            )
+
+            # Return the response from the remote server
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "target_url": target_url,
+                "request_payload": payload,
+                "response": response.json() if response.status_code == 200 else None,
+                "error": None if response.status_code == 200 else response.text
+            }
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail={
+                "success": False,
+                "target_url": target_url,
+                "request_payload": payload,
+                "error": "Request timed out"
+            }
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "success": False,
+                "target_url": target_url,
+                "request_payload": payload,
+                "error": f"Connection error: {str(e)}"
+            }
+        )

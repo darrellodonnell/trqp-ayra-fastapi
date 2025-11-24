@@ -1,10 +1,34 @@
 
-did:webvh:SCID-SLGROUP:sweetlane.example.com
+DIDs:
 
-Ayra Trust Network SANDBOX: did:webvh:SCID-ATN:sandbox-tr.ayra.network
+TODO:
 
-API Endpoint: https://sandbox-tr.ayra.network
+- [ ] switch to did:web?
+- [ ] get list of actual DIDs
+- [ ] TEST  
 
+## Demo Sites
+
+* **Ayra Trust Network Trust Registr**y: https://demo-tr.ayra.network/admin/ui
+
+* verifiers.sa.affinidi.io 
+
+
+
+## Key DIDs
+
+* Sweetlane Group: did:webvh:SCID-SLGROUP:sweetlane.example.com
+* Ayra Trust Network SANDBOX: did:webvh:SCID-ATN:sandbox-tr.ayra.network
+
+API Endpoint: 
+* https://sandbox-tr.ayra.network - NOT IN USE (but LIVE)
+* https://demo-tr.ayra.network
+
+### ngrok
+
+```
+ngrok http --hostname demo-tr.ayra.network 8000
+```
 
 
 
