@@ -39,9 +39,9 @@ ngrok http --hostname demo-tr.ayra.network 8000
 Useful query:
 ```
 {
-  "entity_id": "did:webvh:SCID-SLBANK:sweetlanebank.example.com",
-  "authority_id": "did:webvh:SCID-SLGROUP:sweetlane.example.com",
-  "action": "issue",
+  "entity_id": "did:web:issuers.sa.affinidi.io:sweetlane-group",
+  "authority_id": "did:webvh:SCID-ATN:ayra.forum",
+  "action": "manage-issuers",
   "resource": "ayracard:businesscard",
   "context": {
     "time": "2025-11-18T23:19:55.664008Z"
@@ -54,7 +54,7 @@ Useful query:
 Useful query:
 ```
 {
-  "entity_id": "did:webvh:SCID-SLGROUP:sweetlane.example.com",
+  "entity_id": "did:web:issuers.sa.affinidi.io:sweetlane-group",
   "authority_id": "did:webvh:SCID-ATN:ayra.forum",
   "action": "member-of",
   "resource": "ayratrustnetwork",
