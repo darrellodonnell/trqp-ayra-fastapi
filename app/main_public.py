@@ -90,9 +90,9 @@ app.add_middleware(
 )
 
 # Include PUBLIC routers only
-app.include_router(trqp_core.router, tags=["TRQP Core"])
-app.include_router(ayra_extension.router, tags=["Ayra Extensions"])
-app.include_router(lookup.router, tags=["Lookups"])
+app.include_router(trqp_core.router, tags=["trqp-core"])
+app.include_router(ayra_extension.router, tags=["ayra-extensions"])
+app.include_router(lookup.router, tags=["lookup"])
 
 
 @app.get("/", tags=["Information"])
@@ -198,15 +198,15 @@ def custom_openapi():
     # Add tags with descriptions
     openapi_schema["tags"] = [
         {
-            "name": "TRQP Core",
+            "name": "trqp-core",
             "description": "Trust Registry Query Protocol 2.0 core endpoints for authorization and recognition queries"
         },
         {
-            "name": "Ayra Extensions",
+            "name": "ayra-extensions",
             "description": "Ayra-specific extensions for metadata and entity information"
         },
         {
-            "name": "Lookups",
+            "name": "lookup",
             "description": "Lookup endpoints for discovering supported values and configurations"
         },
         {

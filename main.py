@@ -4,11 +4,12 @@ Combines public TRQP API and internal Admin API
 """
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import uvicorn
 import os
+import yaml
 
 from app import __version__
 from app.database import init_db, seed_default_data
@@ -94,9 +95,9 @@ app.add_middleware(
 )
 
 # Include PUBLIC routers
-app.include_router(trqp_core.router, tags=["TRQP Core"])
-app.include_router(ayra_extension.router, tags=["Ayra Extensions"])
-app.include_router(lookup.router, tags=["Lookups"])
+app.include_router(trqp_core.router, tags=["trqp-core"])
+app.include_router(ayra_extension.router, tags=["ayra-e"])
+app.include_router(lookup.router, tags=["lookup"])
 
 # Mount the admin API at /admin
 from app.main_admin import app as admin_app
@@ -125,7 +126,8 @@ async def root():
         "documentation": {
             "swagger_ui": "/docs",
             "redoc": "/redoc",
-            "openapi_spec": "/openapi.json",
+            "openapi_spec_json": "/openapi.json",
+            "openapi_spec_yaml": "/openapi.yaml",
             "landing_page": "/welcome"
         },
         "endpoints": {
@@ -152,6 +154,18 @@ async def root():
             "admin_ui": "/admin/ui"
         }
     }
+
+
+@app.get("/openapi.yaml", response_class=Response, include_in_schema=False)
+async def get_openapi_yaml():
+    """
+    Return OpenAPI schema in YAML format
+    """
+    openapi_schema = app.openapi()
+    return Response(
+        content=yaml.dump(openapi_schema, sort_keys=False, default_flow_style=False),
+        media_type="application/x-yaml"
+    )
 
 
 @app.get("/welcome", response_class=HTMLResponse, include_in_schema=False)
@@ -442,20 +456,16 @@ def custom_openapi():
     # Add tags with descriptions
     openapi_schema["tags"] = [
         {
-            "name": "TRQP Core",
+            "name": "trqp-core",
             "description": "Trust Registry Query Protocol 2.0 core endpoints for authorization and recognition queries"
         },
         {
-            "name": "Ayra Extensions",
+            "name": "ayra-extensions",
             "description": "Ayra-specific extensions for metadata and entity information"
         },
         {
-            "name": "Lookups",
+            "name": "lookup",
             "description": "Lookup endpoints for discovering supported values and configurations"
-        },
-        {
-            "name": "Information",
-            "description": "API information and discovery endpoints"
         }
     ]
 
