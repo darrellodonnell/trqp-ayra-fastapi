@@ -28,4 +28,4 @@ echo -e "${GREEN}Swagger docs at: http://localhost:8000/docs${NC}"
 echo -e "${GREEN}ReDoc at: http://localhost:8000/redoc${NC}"
 echo ""
 
-python -m app.main
+python3 main.py

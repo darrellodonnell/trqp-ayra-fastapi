@@ -30,7 +30,7 @@ This creates a SQLite database with example data.
 ### Step 3: Start the Server
 
 ```bash
-python -m app.main
+python3 main.py
 ```
 
 ### Step 4: Open the Admin UI
@@ -217,7 +217,7 @@ You can test all endpoints directly from the Swagger UI!
 ### Port Already in Use
 ```bash
 # Change the port
-uvicorn app.main:app --port 8001
+uvicorn main:app --port 8001
 ```
 
 ### Database Errors
@@ -229,8 +229,8 @@ python init_db.py
 
 ### Can't Access Admin UI
 Make sure:
-1. Server is running: `python -m app.main`
-2. Navigate to: `http://localhost:8000/admin-ui` (note the dash)
+1. Server is running: `python3 main.py`
+2. Navigate to: `http://localhost:8000/admin/ui` (note the dash)
 3. Check console for errors
 
 ### Authorization Not Working

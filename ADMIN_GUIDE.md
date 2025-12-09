@@ -10,12 +10,12 @@ The Admin UI provides a web-based interface for managing lookup values and entit
 
 1. Start the server:
    ```bash
-   python -m app.main
+   python3 main.py
    ```
 
 2. Open your browser and navigate to:
    ```
-   http://localhost:8000/admin-ui
+   http://localhost:8000/admin/ui
    ```
 
 ### Features

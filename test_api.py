@@ -143,7 +143,7 @@ def main():
         print("\n" + "="*60)
         print("ERROR: Could not connect to the API server")
         print(f"Please make sure the server is running at {BASE_URL}")
-        print("Run: python -m app.main")
+        print("Run: python3 main.py")
         print("="*60 + "\n")
     except Exception as e:
         print(f"\nERROR: {str(e)}\n")

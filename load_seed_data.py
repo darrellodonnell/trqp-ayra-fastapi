@@ -160,8 +160,8 @@ def main():
             print("\n" + "=" * 60)
             print("✓ Database seeded successfully!")
             print("=" * 60)
-            print("\nYou can now start the server with: python -m app.main")
-            print("Or visit the admin UI at: http://localhost:8000/admin-ui")
+            print("\nYou can now start the server with: python3 main.py")
+            print("Or visit the admin UI at: http://localhost:8000/admin/ui")
         else:
             print("\n✗ Data verification failed")
             sys.exit(1)

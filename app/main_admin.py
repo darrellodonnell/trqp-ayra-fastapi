@@ -4,11 +4,12 @@ Administrative endpoints for managing the trust registry
 """
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import logging
 import os
+import yaml
 
 from app import __version__
 from app.routers import admin
@@ -118,7 +119,8 @@ async def admin_root():
         "documentation": {
             "swagger_ui": "/admin/docs",
             "redoc": "/admin/redoc",
-            "openapi_spec": "/admin/openapi.json",
+            "openapi_spec_json": "/admin/openapi.json",
+            "openapi_spec_yaml": "/admin/openapi.yaml",
             "admin_ui": "/admin/ui"
         },
         "endpoints": {
@@ -135,6 +137,18 @@ async def admin_root():
             "description": "Public TRQP query API"
         }
     }
+
+
+@app.get("/openapi.yaml", response_class=Response, include_in_schema=False)
+async def get_admin_openapi_yaml():
+    """
+    Return Admin API OpenAPI schema in YAML format
+    """
+    openapi_schema = app.openapi()
+    return Response(
+        content=yaml.dump(openapi_schema, sort_keys=False, default_flow_style=False),
+        media_type="application/x-yaml"
+    )
 
 
 @app.get("/ui", response_class=HTMLResponse, tags=["UI"])

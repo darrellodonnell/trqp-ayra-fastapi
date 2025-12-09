@@ -28,8 +28,8 @@ def main():
     print("  - 4 Authorizations (issue, verify, revoke, register)")
     print("  - 1 Trust Registry Configuration")
     print("\nYou can now:")
-    print("  1. Start the server: python -m app.main")
-    print("  2. Access the Admin UI: http://localhost:8000/admin-ui")
+    print("  1. Start the server: python3 main.py")
+    print("  2. Access the Admin UI: http://localhost:8000/admin/ui")
     print("  3. View API docs: http://localhost:8000/docs")
 
 if __name__ == "__main__":
