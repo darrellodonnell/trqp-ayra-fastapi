@@ -5,17 +5,19 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/recognition
+  url: https://sandbox-tr.ayra.network/recognition
   body: json
   auth: inherit
 }
 
 body:json {
   {
-    "entity_id": "",
-    "authority_id": "",
-    "action": "",
-    "resource": "",
-    "context": ""
+    "entity_id": "did:webvh:SCID-SLGROUP:sweetlane.example.com",
+    "authority_id": "did:webvh:SCID-ATN:ayra.forum",
+    "action": "member-of",
+    "resource": "ayratrustnetwork",
+    "context": {
+      "time": "2025-11-18T23:19:55.664008Z"
+    }
   }
 }

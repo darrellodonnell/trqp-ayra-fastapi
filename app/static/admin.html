@@ -2316,32 +2316,86 @@
             const baseUrl = document.getElementById('test-endpoint-select').value;
             const entityDid = document.getElementById('test-entity-did').value;
             const authorityDid = document.getElementById('test-authority-did').value;
-            const authData = JSON.parse(document.getElementById('test-authorization-select').value);
+            const authValue = document.getElementById('test-authorization-select').value;
+
+            // Build query data outside try block so it's available in catch
+            let queryData = {};
+            let authData = {};
 
             try {
-                // Make TRQP authorization query to external endpoint
-                const queryData = {
-                    entity_id: entityDid,
-                    authority_id: authorityDid,
-                    action: authData.action,
-                    resource: authData.resource
+                authData = JSON.parse(authValue);
+            } catch (parseError) {
+                showAlert('Please select an authorization', 'error');
+                return;
+            }
+
+            // Make TRQP authorization query to external endpoint
+            queryData = {
+                entity_id: entityDid,
+                authority_id: authorityDid,
+                action: authData.action,
+                resource: authData.resource
+            };
+
+            try {
+                // Use the proxy endpoint to avoid CORS issues
+                const proxyPayload = {
+                    base_url: baseUrl,
+                    entity_id: queryData.entity_id,
+                    authority_id: queryData.authority_id,
+                    action: queryData.action,
+                    resource: queryData.resource
                 };
 
-                const response = await fetch(`${baseUrl}/authorization`, {
+                const proxyResponse = await fetch('/admin/trqp-proxy/authorization', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(queryData)
+                    body: JSON.stringify(proxyPayload)
                 });
 
-                const result = await response.json();
+                const proxyResult = await proxyResponse.json();
 
                 // Display results
                 const resultsCard = document.getElementById('test-results-card');
                 const resultsDiv = document.getElementById('test-results');
-
                 resultsCard.style.display = 'block';
+
+                // Check if proxy request was successful
+                if (!proxyResponse.ok || !proxyResult.success) {
+                    const errorMsg = proxyResult.detail?.error || proxyResult.error || 'Unknown error';
+                    const targetUrl = proxyResult.detail?.target_url || proxyResult.target_url || `${baseUrl}/authorization`;
+                    const reqPayload = proxyResult.detail?.request_payload || proxyResult.request_payload || queryData;
+
+                    resultsDiv.innerHTML = `
+                        <div style="padding: 20px; background: var(--error-bg); border-radius: 8px; color: var(--error); margin-bottom: 20px;">
+                            <h3>Request Failed</h3>
+                            <p>${errorMsg}</p>
+                        </div>
+                        <h4>Request Details</h4>
+                        <table>
+                            <tr>
+                                <th style="width: 200px;">Target URL</th>
+                                <td><code style="word-break: break-all;">${targetUrl}</code></td>
+                            </tr>
+                            <tr>
+                                <th>Method</th>
+                                <td><code>POST</code></td>
+                            </tr>
+                            <tr>
+                                <th>Request Body</th>
+                                <td><pre style="margin: 0; background: var(--gray-100); padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(reqPayload, null, 2)}</pre></td>
+                            </tr>
+                        </table>
+                    `;
+                    showAlert(`Error: ${errorMsg}`, 'error');
+                    return;
+                }
+
+                // Extract the actual TRQP response
+                const result = proxyResult.response;
+                const targetUrl = proxyResult.target_url;
 
                 const statusColor = result.authorized ? 'var(--success)' : 'var(--error)';
                 const statusIcon = result.authorized ? '✓' : '✗';
@@ -2391,6 +2445,26 @@
                     `;
                 }
 
+                // Add request details section
+                const requestUrl = targetUrl;
+                html += `
+                    <h4 style="margin-top: 20px;">Request Details</h4>
+                    <table>
+                        <tr>
+                            <th style="width: 200px;">URL</th>
+                            <td><code style="word-break: break-all;">${requestUrl}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Method</th>
+                            <td><code>POST</code></td>
+                        </tr>
+                        <tr>
+                            <th>Request Body</th>
+                            <td><pre style="margin: 0; background: var(--gray-100); padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(queryData, null, 2)}</pre></td>
+                        </tr>
+                    </table>
+                `;
+
                 resultsDiv.innerHTML = html;
 
                 if (result.authorized) {
@@ -2403,12 +2477,30 @@
                 const resultsCard = document.getElementById('test-results-card');
                 const resultsDiv = document.getElementById('test-results');
 
+                // Build request details for error display
+                const requestUrl = `${baseUrl}/authorization`;
+
                 resultsCard.style.display = 'block';
                 resultsDiv.innerHTML = `
-                    <div style="padding: 20px; background: var(--error-bg); border-radius: 8px; color: var(--error);">
+                    <div style="padding: 20px; background: var(--error-bg); border-radius: 8px; color: var(--error); margin-bottom: 20px;">
                         <h3>Test Failed</h3>
                         <p>${error.message}</p>
                     </div>
+                    <h4>Request Details</h4>
+                    <table>
+                        <tr>
+                            <th style="width: 200px;">URL</th>
+                            <td><code style="word-break: break-all;">${requestUrl}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Method</th>
+                            <td><code>POST</code></td>
+                        </tr>
+                        <tr>
+                            <th>Request Body</th>
+                            <td><pre style="margin: 0; background: var(--gray-100); padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(queryData, null, 2)}</pre></td>
+                        </tr>
+                    </table>
                 `;
             }
         });

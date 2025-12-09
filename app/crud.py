@@ -376,7 +376,7 @@ def check_entity_authorization(db: Session, entity_did: str, authority_id: str,
 
 
 def get_entity_authorizations_list(db: Session, entity_did: str, authority_id: str) -> List[Authorization]:
-    """Get all authorizations for an entity"""
+    """Get all authorizations for an entity."""
     entity = db.query(Entity).filter(
         Entity.entity_did == entity_did,
         Entity.authority_id == authority_id

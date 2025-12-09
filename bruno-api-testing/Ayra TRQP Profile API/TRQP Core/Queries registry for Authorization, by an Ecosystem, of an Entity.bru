@@ -5,17 +5,16 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/authorization
+  url: https://trust-registry-rs.sa.affinidi.io/authorization
   body: json
   auth: inherit
 }
 
 body:json {
   {
-    "entity_id": "",
-    "authority_id": "",
-    "action": "",
-    "resource": "",
-    "context": ""
+    "entity_id": "did:web:issuers.sa.affinidi.io:sweetlane-bank",
+    "authority_id": "did:web:issuers.sa.affinidi.io:sweetlane-group",
+    "action": "issue",
+    "resource": "ayracard:businesscard"
   }
 }
