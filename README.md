@@ -32,7 +32,7 @@ This project provides a RESTful API harness implementing the Ayra TRQP Profile s
 - `GET /lookups/didMethods` - Lookup supported DID methods
 
 ### Admin Features (NEW!)
-- **Web-based Admin UI** at `/admin-ui` for managing:
+- **Web-based Admin UI** at `/admin/ui` for managing:
   - DID Methods
   - Assurance Levels
   - Authorizations (action+resource pairs)

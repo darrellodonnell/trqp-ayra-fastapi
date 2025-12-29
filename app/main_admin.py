@@ -7,12 +7,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from starlette.middleware.sessions import SessionMiddleware
 import logging
 import os
 import yaml
 
 from app import __version__
-from app.routers import admin
+from app.routers import admin, auth as auth_router
+from app.auth import SECRET_KEY
 
 # Configure logging
 logging.basicConfig(
@@ -89,6 +91,16 @@ app = FastAPI(
     root_path="/admin"  # All routes will be prefixed with /admin
 )
 
+# Add Session Middleware for OAuth
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    session_cookie="admin_session",
+    max_age=3600 * 24,  # 24 hours
+    same_site="lax",
+    https_only=False  # Set to True in production with HTTPS
+)
+
 # Configure CORS (more restrictive for admin API)
 app.add_middleware(
     CORSMiddleware,
@@ -101,6 +113,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+# Include AUTH router (must be before admin router to avoid conflicts)
+app.include_router(auth_router.router, prefix="/auth", tags=["Authentication"])
 
 # Include ADMIN router
 app.include_router(admin.router, prefix="", tags=["Admin"])

@@ -30,6 +30,12 @@ API Endpoint:
 ngrok http --hostname demo-tr.ayra.network 8000
 ```
 
+e.g. 
+```
+ngrok http --hostname sandbox-tr.ayra.network 8000
+```
+
+
 
 
 

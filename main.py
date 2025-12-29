@@ -3,6 +3,10 @@ Main application entry point
 Combines public TRQP API and internal Admin API
 """
 
+# IMPORTANT: Load .env file BEFORE importing any app modules
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware

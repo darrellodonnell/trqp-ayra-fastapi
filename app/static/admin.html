@@ -770,14 +770,38 @@
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
+    <div id="login-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 16px; padding: 60px 50px; max-width: 500px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <h1 style="margin-bottom: 20px; color: #2d3748;">🔐 Admin Login Required</h1>
+            <p style="margin-bottom: 30px; color: #4a5568; font-size: 1.1rem;">Please sign in with your authorized Google account to access the admin interface.</p>
+            <a href="/admin/auth/login" style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.2s;">
+                Sign in with Google
+            </a>
+            <p style="margin-top: 30px; color: #718096; font-size: 0.9rem;">Only authorized accounts have access</p>
+        </div>
+    </div>
+
     <header>
-        <div class="container">
-            <h1>🔐 Ayra TRQP Admin</h1>
-            <p>Trust Registry Management Interface</p>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🔐 Ayra TRQP Admin</h1>
+                <p>Trust Registry Management Interface</p>
+            </div>
+            <div id="user-info" style="text-align: right; display: none;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img id="user-picture" src="" alt="User" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #667eea;">
+                    <div style="text-align: left;">
+                        <div id="user-name" style="font-weight: 600; color: #2d3748;"></div>
+                        <div id="user-email" style="font-size: 0.85rem; color: #718096;"></div>
+                    </div>
+                    <a href="/admin/auth/logout" style="padding: 8px 16px; background: #ef4444; color: white; text-decoration: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600;">Logout</a>
+                </div>
+            </div>
         </div>
     </header>
 
-    <div class="container">
+    <div class="container" id="main-content" style="display: none;">
         <div id="alert-container"></div>
 
         <div class="tabs">
@@ -2505,11 +2529,50 @@
             }
         });
 
+        // Authentication Check
+        async function checkAuth() {
+            try {
+                const response = await fetch('/admin/auth/me');
+                if (response.ok) {
+                    const user = await response.json();
+                    // User is authenticated
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    document.getElementById('user-info').style.display = 'block';
+
+                    // Update user info
+                    document.getElementById('user-name').textContent = user.name || 'User';
+                    document.getElementById('user-email').textContent = user.email || '';
+                    if (user.picture) {
+                        document.getElementById('user-picture').src = user.picture;
+                    }
+
+                    return true;
+                } else {
+                    // User not authenticated
+                    document.getElementById('login-screen').style.display = 'flex';
+                    document.getElementById('main-content').style.display = 'none';
+                    document.getElementById('user-info').style.display = 'none';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                // Show login screen on error
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('main-content').style.display = 'none';
+                document.getElementById('user-info').style.display = 'none';
+                return false;
+            }
+        }
+
         // Initial Load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadRegistryConfig();
-            loadAuthorizationsForCheckboxes();
-            loadEntities();
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isAuthenticated = await checkAuth();
+            if (isAuthenticated) {
+                loadRegistryConfig();
+                loadAuthorizationsForCheckboxes();
+                loadEntities();
+            }
         });
     </script>
 </body>

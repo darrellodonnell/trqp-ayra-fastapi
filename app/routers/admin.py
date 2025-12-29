@@ -3,7 +3,7 @@ Admin Endpoints
 Provides CRUD operations for managing lookup values and entities
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional
@@ -11,9 +11,14 @@ from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app import crud
+from app.auth import get_current_user
 
 
-router = APIRouter(tags=["admin"])
+# Router with authentication dependency applied to all routes
+router = APIRouter(
+    tags=["admin"],
+    dependencies=[Depends(get_current_user)]  # All routes require authentication
+)
 
 
 # Pydantic schemas for admin operations
