@@ -8,6 +8,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Database URL - defaults to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./trqp.db")
@@ -215,7 +218,7 @@ def seed_default_data():
     try:
         # Check if data already exists
         if db.query(DIDMethod).first():
-            print("Database already seeded")
+            logger.debug("Database already seeded")
             return
 
         # Add default DID methods
@@ -303,9 +306,9 @@ def seed_default_data():
         db.add(registry_config)
 
         db.commit()
-        print("Database seeded successfully")
+        logger.info("Database seeded successfully")
     except Exception as e:
-        print(f"Error seeding database: {e}")
+        logger.error(f"Error seeding database: {e}")
         db.rollback()
     finally:
         db.close()
