@@ -2543,8 +2543,40 @@
                     // Update user info
                     document.getElementById('user-name').textContent = user.name || 'User';
                     document.getElementById('user-email').textContent = user.email || '';
+
+                    // Handle profile picture with fallback
+                    const userPicture = document.getElementById('user-picture');
                     if (user.picture) {
-                        document.getElementById('user-picture').src = user.picture;
+                        userPicture.src = user.picture;
+                        userPicture.onerror = function() {
+                            // If image fails to load, show initials instead
+                            this.style.display = 'none';
+                            const initials = (user.name || user.email || 'U')
+                                .split(' ')
+                                .map(word => word[0])
+                                .join('')
+                                .toUpperCase()
+                                .substring(0, 2);
+
+                            const initialsDiv = document.createElement('div');
+                            initialsDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;';
+                            initialsDiv.textContent = initials;
+                            this.parentNode.insertBefore(initialsDiv, this);
+                        };
+                    } else {
+                        // No picture provided, show initials
+                        const initials = (user.name || user.email || 'U')
+                            .split(' ')
+                            .map(word => word[0])
+                            .join('')
+                            .toUpperCase()
+                            .substring(0, 2);
+
+                        userPicture.style.display = 'none';
+                        const initialsDiv = document.createElement('div');
+                        initialsDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;';
+                        initialsDiv.textContent = initials;
+                        userPicture.parentNode.insertBefore(initialsDiv, userPicture);
                     }
 
                     return true;
