@@ -1,0 +1,22 @@
+services:
+  trqp:
+    build:
+      context: .
+    ports:
+      - "8082:8000"
+    env_file:
+      - .env
+    volumes:
+      - trqp-data:/app
+    restart: unless-stopped
+  ngrok:
+    image: ngrok/ngrok:alpine
+    depends_on:
+      - trqp
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTH_TOKEN}
+    command: http --domain=sandbox-tr.ayra.network http://trqp:8000
+    restart: unless-stopped
+
+volumes:
+  trqp-data:

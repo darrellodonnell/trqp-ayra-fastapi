@@ -65,11 +65,14 @@ trqp-ayra-fastapi/
 └── README.md                # This file
 ```
 
-## Installation
+## Local Installation (Option B only)
+
+If you're using **Quick Start Option A (Docker Compose)**, you can skip this section.
 
 ### Prerequisites
 - Python 3.9 or higher
 - pip
+
 
 ### Setup
 
@@ -97,8 +100,24 @@ cp .env.example .env
 ```
 
 ## Quick Start
+If you're using Option A, you do not need the Local Installation steps above.
 
-### 1. Run the Application
+### Option A: Run with Docker Compose
+
+1. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+2. Start the services in the background:
+```bash
+docker-compose up -d
+```
+
+### Option B: Run Locally (Python)
+
+#### 1. Run the Application
 
 The application automatically initializes the database on startup.
 
@@ -117,7 +136,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-### 2. Access the Application
+#### 2. Access the Application
+
+These URLs are the same whether you use Docker Compose or run locally.
 
 The application runs two separate APIs:
 
