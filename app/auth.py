@@ -4,11 +4,14 @@ Authentication and authorization for the admin API using Google OAuth
 import os
 from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import RedirectResponse
 from authlib.integrations.starlette_client import OAuth
+from authlib.jose import jwt
 from starlette.middleware.sessions import SessionMiddleware
 from itsdangerous import URLSafeTimedSerializer
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +19,12 @@ logger = logging.getLogger(__name__)
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-to-a-random-secret-key-in-production")
+
+# Optional bearer-token auth for admin APIs
+ADMIN_BEARER_JWKS_URL = os.getenv("ADMIN_BEARER_JWKS_URL")
+ADMIN_BEARER_ISSUER = os.getenv("ADMIN_BEARER_ISSUER")
+ADMIN_BEARER_AUDIENCE = os.getenv("ADMIN_BEARER_AUDIENCE")
+ADMIN_BEARER_TOKENS = os.getenv("ADMIN_BEARER_TOKENS")
 
 # Support both single email (backward compatible) and multiple emails
 AUTHORIZED_EMAIL = os.getenv("AUTHORIZED_EMAIL")  # Legacy single email support
@@ -61,6 +70,7 @@ if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
 
 # Session serializer
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_session_middleware():
@@ -115,6 +125,65 @@ def get_current_user(request: Request) -> dict:
         )
 
     return user
+
+
+def is_bearer_configured() -> bool:
+    if ADMIN_BEARER_TOKENS:
+        return True
+    return bool(ADMIN_BEARER_JWKS_URL and ADMIN_BEARER_ISSUER and ADMIN_BEARER_AUDIENCE)
+
+
+def verify_bearer_token(token: str) -> Optional[dict]:
+    if ADMIN_BEARER_TOKENS:
+        allowed = {value.strip() for value in ADMIN_BEARER_TOKENS.split(",") if value.strip()}
+        if token in allowed:
+            return {"sub": "api-key", "auth_type": "bearer"}
+        return None
+
+    if not (ADMIN_BEARER_JWKS_URL and ADMIN_BEARER_ISSUER and ADMIN_BEARER_AUDIENCE):
+        return None
+
+    try:
+        jwks = requests.get(ADMIN_BEARER_JWKS_URL, timeout=5).json()
+        claims = jwt.decode(
+            token,
+            jwks,
+            claims_options={
+                "iss": {"essential": True, "value": ADMIN_BEARER_ISSUER},
+                "aud": {"essential": True, "value": ADMIN_BEARER_AUDIENCE},
+            },
+        )
+        claims.validate()
+        return {
+            "sub": claims.get("sub"),
+            "email": claims.get("email"),
+            "auth_type": "bearer",
+        }
+    except Exception as exc:
+        logger.warning(f"Bearer token validation failed: {exc}")
+        return None
+
+
+async def get_current_admin(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> dict:
+    if credentials and credentials.scheme.lower() == "bearer":
+        user = verify_bearer_token(credentials.credentials)
+        if user:
+            return user
+        if is_bearer_configured():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid bearer token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Bearer authentication not configured.",
+        )
+
+    return get_current_user(request)
 
 
 def optional_auth(request: Request) -> Optional[dict]:

@@ -156,6 +156,37 @@ The application runs two separate APIs:
 - **ReDoc**: http://localhost:8000/admin/redoc
 - **OpenAPI Spec**: http://localhost:8000/admin/openapi.json
 
+### Admin API Authentication (Required)
+
+The Admin UI and `/admin/*` endpoints require authentication. The **current/primary mode** used in local
+testing is **static bearer tokens** via `ADMIN_BEARER_TOKENS`.
+
+#### Mode 1 (Primary): Static bearer tokens
+Set one or more tokens (comma-separated) in `.env`:
+```
+ADMIN_BEARER_TOKENS=token1,token2
+```
+
+Call admin endpoints with:
+```bash
+curl -H "Authorization: Bearer token1" http://localhost:8000/admin/entities
+```
+
+#### Mode 2: JWT/JWKS validation (optional)
+If you want JWT validation, set:
+```
+ADMIN_BEARER_JWKS_URL=https://issuer.example/.well-known/jwks.json
+ADMIN_BEARER_ISSUER=https://issuer.example/
+ADMIN_BEARER_AUDIENCE=trqp-admin
+```
+
+#### Swagger behind ngrok
+If you expose the admin UI via ngrok, set:
+```
+EXTERNAL_URL=https://your-ngrok-domain.example
+```
+This updates the Swagger "Try it out" base URL.
+
 ### Database Initialization
 
 The database is automatically initialized on first run with:
@@ -306,9 +337,9 @@ See [LICENSE](LICENSE) file for details.
 
 * ✅ ~~Attach a back-end with real data to support sandbox use~~
 * ✅ ~~Add database integration (PostgreSQL/MongoDB)~~
-* Implement authentication and authorization for admin endpoints
+* ✅ ~~Implement authentication and authorization for admin endpoints~~
 * Add unit and integration tests
-* Add Docker containerization
+* ✅ ~~Add Docker containerization~~
 * Add CI/CD pipeline
 * Implement DID resolution
 * Add rate limiting

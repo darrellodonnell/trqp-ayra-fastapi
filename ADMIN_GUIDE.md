@@ -96,7 +96,33 @@ http://localhost:8000/admin
 ```
 
 ### Authentication
-Currently, the admin API is open. In production, you should implement authentication and authorization.
+Admin endpoints require authentication. The **current/primary mode** used is static bearer tokens.
+
+#### Mode 1 (Primary): Static bearer tokens
+Set one or more tokens (comma-separated) in `.env`:
+```
+ADMIN_BEARER_TOKENS=token1,token2
+```
+
+Use the token in the `Authorization` header:
+```bash
+curl -H "Authorization: Bearer token1" http://localhost:8000/admin/entities
+```
+
+#### Mode 2: JWT/JWKS validation (optional)
+If you want JWT validation, set:
+```
+ADMIN_BEARER_JWKS_URL=https://issuer.example/.well-known/jwks.json
+ADMIN_BEARER_ISSUER=https://issuer.example/
+ADMIN_BEARER_AUDIENCE=trqp-admin
+```
+
+#### Swagger behind ngrok
+If you expose admin endpoints via ngrok, set:
+```
+EXTERNAL_URL=https://your-ngrok-domain.example
+```
+This updates the Swagger "Try it out" base URL.
 
 ### Endpoints
 
