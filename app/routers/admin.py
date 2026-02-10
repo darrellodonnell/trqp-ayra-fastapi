@@ -11,13 +11,13 @@ from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app import crud
-from app.auth import get_current_user
+from app.auth import get_current_admin
 
 
 # Router with authentication dependency applied to all routes
 router = APIRouter(
     tags=["admin"],
-    dependencies=[Depends(get_current_user)]  # All routes require authentication
+    dependencies=[Depends(get_current_admin)]  # All routes require authentication
 )
 
 
