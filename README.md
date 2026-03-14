@@ -115,6 +115,29 @@ cp .env.example .env
 docker-compose up -d
 ```
 
+### Restore CTS Sandbox Seed Data
+
+If you want the local TR restored to the entity and policy state expected by the
+Ayra CTS sandbox flows, run:
+
+```bash
+python load_seed_data.py --preset cts-sandbox --yes
+```
+
+This recreates:
+- `did:webvh:ayra.forum` as the Ayra Trust Network ecosystem
+- `did:web:sandbox.ayra.network` as the sandbox ecosystem
+- `did:web:ayra-cts-issuer.ngrok.app:issuer` as the CTS issuer
+- issuer authorization for `issue / ayracard:businesscard`
+- sandbox ecosystem authorization for `manage-issuers / ayracard:businesscard`
+- ATN recognition of the sandbox ecosystem for `member-of / ayratrustnetwork`
+
+Use the generic sample data instead with:
+
+```bash
+python load_seed_data.py --preset default --yes
+```
+
 ### Option B: Run Locally (Python)
 
 #### 1. Run the Application
@@ -133,7 +156,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 **Production Mode**:
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers
 ```
 
 #### 2. Access the Application
@@ -186,6 +209,21 @@ If you expose the admin UI via ngrok, set:
 EXTERNAL_URL=https://your-ngrok-domain.example
 ```
 This updates the Swagger "Try it out" base URL.
+
+#### Google OAuth behind AWS / reverse proxies
+For Google login in production, configure the public HTTPS callback explicitly:
+```
+GOOGLE_REDIRECT_URI=https://sandbox-tr.ayra.network/admin/auth/callback
+```
+
+Google Cloud Console must include the exact callback URI:
+```
+http://localhost:8000/admin/auth/callback
+https://sandbox-tr.ayra.network/admin/auth/callback
+```
+
+If `GOOGLE_REDIRECT_URI` is not set, the app falls back to `request.url_for(...)`, which preserves local development behavior.
+When deploying behind AWS or another reverse proxy, run uvicorn with proxy header support so forwarded scheme/host values are honored.
 
 ### Database Initialization
 

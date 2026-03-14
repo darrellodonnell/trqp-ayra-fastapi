@@ -3,7 +3,7 @@ Authentication routes for Google OAuth
 """
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
-from app.auth import oauth, get_authorized_emails, is_auth_configured
+from app.auth import oauth, get_authorized_emails, get_google_redirect_uri, is_auth_configured
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,9 +37,17 @@ async def login(request: Request):
             status_code=503
         )
 
-    # Get the redirect URI - this should match what's configured in Google Console
-    redirect_uri = request.url_for('auth_callback')
-    logger.info(f"Initiating OAuth flow with redirect URI: {redirect_uri}")
+    configured_redirect_uri = get_google_redirect_uri()
+    if configured_redirect_uri:
+        redirect_uri = configured_redirect_uri
+        redirect_uri_source = "GOOGLE_REDIRECT_URI"
+    else:
+        redirect_uri = str(request.url_for('auth_callback'))
+        redirect_uri_source = "request.url_for('auth_callback')"
+
+    logger.info(
+        f"Initiating OAuth flow with redirect URI (source={redirect_uri_source}): {redirect_uri}"
+    )
 
     return await oauth.google.authorize_redirect(request, redirect_uri)
 

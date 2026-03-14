@@ -5,9 +5,10 @@ This document describes how to manage the Ayra TRQP database, including initiali
 ## Database Files
 
 - `trqp.db` - SQLite database file (created automatically)
-- `seed_data.sql` - Sample data for bootstrapping a new database
+- `seed_data.sql` - General sample data for bootstrapping a new database
+- `seed_data_cts_sandbox.sql` - CTS-specific sandbox data used by Ayra CTS
 - `database_export.sql` - Full database dump (all tables and data)
-- `load_seed_data.py` - Python script to reset and seed the database
+- `load_seed_data.py` - Python script to reset and seed the database from a selected SQL file
 
 ## Quick Start
 
@@ -24,6 +25,22 @@ This will:
 - Recreate the schema
 - Load sample data from `seed_data.sql`
 - Verify the data was loaded correctly
+
+### 1a. Initialize Database with CTS Sandbox Data
+
+To create a fresh database with the entity and policy state expected by the Ayra CTS sandbox flows:
+
+```bash
+python load_seed_data.py --preset cts-sandbox --yes
+```
+
+This restores:
+- Ayra Trust Network: `did:webvh:ayra.forum`
+- Ayra Sandbox Ecosystem: `did:web:sandbox.ayra.network`
+- CTS Issuer: `did:web:ayra-cts-issuer.ngrok.app:issuer`
+- issuer authorization for `issue / ayracard:businesscard`
+- sandbox ecosystem authorization for `manage-issuers / ayracard:businesscard`
+- ATN recognition of the sandbox ecosystem for `member-of / ayratrustnetwork`
 
 ### 2. Reset Database (Keep Schema, Clear Data)
 
@@ -45,6 +62,17 @@ python load_seed_data.py --keep-existing
 ```
 
 **Note:** This may fail if there are duplicate DIDs or other unique constraint violations.
+
+### Loader Options
+
+The seed loader supports named presets and explicit seed files:
+
+```bash
+python load_seed_data.py --preset default
+python load_seed_data.py --preset cts-sandbox --yes
+python load_seed_data.py --seed-file seed_data_cts_sandbox.sql --yes
+python load_seed_data.py --keep-existing --seed-file my_custom_seed.sql
+```
 
 ## Sample Data Structure
 

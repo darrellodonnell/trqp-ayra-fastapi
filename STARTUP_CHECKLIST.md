@@ -11,6 +11,7 @@ python test_auth_config.py
 This will verify:
 - ✅ GOOGLE_CLIENT_ID is loaded
 - ✅ GOOGLE_CLIENT_SECRET is loaded
+- ✅ GOOGLE_REDIRECT_URI is shown when configured
 - ✅ SECRET_KEY is configured
 - ✅ AUTHORIZED_EMAILS contains your authorized users
 - ✅ Show required redirect URIs for Google Cloud Console
@@ -38,7 +39,7 @@ INFO - Configured 2 authorized user(s) for admin access
 - Admin UI: http://localhost:8000/admin/ui
 - Admin API Docs: http://localhost:8000/admin/docs
 
-**Production URL:** https://sandbox-tr.ayra.technology/admin/ui
+**Production URL:** https://sandbox-tr.ayra.network/admin/ui
 
 ## Authorized Users
 
@@ -57,7 +58,7 @@ http://localhost:8000/admin/auth/callback
 
 **Production:**
 ```
-https://sandbox-tr.ayra.technology/admin/auth/callback
+https://sandbox-tr.ayra.network/admin/auth/callback
 ```
 
 To update redirect URIs:
@@ -84,6 +85,8 @@ python test_auth_config.py
 
 **Solution:**
 - Check that both URIs are configured (local + production)
+- Set `GOOGLE_REDIRECT_URI=https://sandbox-tr.ayra.network/admin/auth/callback` in production
+- Make sure the app is started with proxy header support behind AWS / reverse proxies
 - Ensure no typos or trailing slashes
 - Verify the correct Client ID is being used
 
@@ -141,6 +144,9 @@ python test_auth_config.py
 
 # Start server
 python main.py
+
+# Production / reverse-proxy startup
+uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers
 
 # Check logs for auth configuration
 # Should see: "Configured X authorized user(s) for admin access"

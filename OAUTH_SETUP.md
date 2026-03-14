@@ -4,7 +4,7 @@ This document explains how to configure Google OAuth authentication for the Ayra
 
 ## Overview
 
-The admin interface is now protected with Google OAuth authentication. Only the Google account specified in the `AUTHORIZED_EMAIL` environment variable will be able to access the admin interface.
+The admin interface is now protected with Google OAuth authentication. Only the Google account specified in the `AUTHORIZED_EMAIL` or `AUTHORIZED_EMAILS` environment variable will be able to access the admin interface.
 
 ## Setup Instructions
 
@@ -40,9 +40,9 @@ The admin interface is now protected with Google OAuth authentication. Only the 
 
 7. **Authorized redirect URIs** - Add these URLs:
    - For local development: `http://localhost:8000/admin/auth/callback`
-   - For production: `https://your-domain.com/admin/auth/callback`
+   - For production: `https://sandbox-tr.ayra.network/admin/auth/callback`
 
-   Replace `your-domain.com` with your actual domain.
+   Replace the production example with your actual public admin domain if different.
 
 8. Click **Create**
 9. Copy the **Client ID** and **Client Secret** that appear
@@ -60,6 +60,7 @@ The admin interface is now protected with Google OAuth authentication. Only the 
    # Google OAuth Configuration
    GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=your-client-secret
+   GOOGLE_REDIRECT_URI=https://sandbox-tr.ayra.network/admin/auth/callback
    AUTHORIZED_EMAILS=user1@gmail.com,user2@gmail.com,user3@gmail.com
    SECRET_KEY=your-random-secret-key
    ```
@@ -71,7 +72,9 @@ The admin interface is now protected with Google OAuth authentication. Only the 
 
    Copy the output and paste it as your `SECRET_KEY` value.
 
-4. **Set AUTHORIZED_EMAILS** to a comma-separated list of Google account email addresses. Only these accounts will be able to access the admin interface.
+4. **Set GOOGLE_REDIRECT_URI in production** to the exact public HTTPS callback URL registered in Google Cloud Console. For local development, you can leave it unset and the app will fall back to `http://localhost:8000/admin/auth/callback`.
+
+5. **Set AUTHORIZED_EMAILS** to a comma-separated list of Google account email addresses. Only these accounts will be able to access the admin interface.
 
    Examples:
    - Single user: `AUTHORIZED_EMAILS=admin@example.com`
@@ -103,19 +106,13 @@ The admin interface is now protected with Google OAuth authentication. Only the 
 
 For production deployment with HTTPS:
 
-1. Update `app/main_admin.py` session middleware configuration:
-   ```python
-   app.add_middleware(
-       SessionMiddleware,
-       secret_key=SECRET_KEY,
-       session_cookie="admin_session",
-       max_age=3600 * 24,
-       same_site="lax",
-       https_only=True  # Change to True for HTTPS
-   )
+1. Ensure your redirect URI in Google Cloud Console uses `https://`
+2. Set `GOOGLE_REDIRECT_URI` to that same public HTTPS callback URL
+3. Run uvicorn with proxy header support when the app sits behind AWS or another reverse proxy:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4 --proxy-headers
    ```
-
-2. Ensure your redirect URI in Google Cloud Console uses `https://`
+4. Keep the local development callback (`http://localhost:8000/admin/auth/callback`) registered if you also use Google login locally
 
 ### Security Best Practices
 
@@ -143,6 +140,7 @@ For production deployment with HTTPS:
 ### "redirect_uri_mismatch" error
 
 - The callback URL must exactly match what's configured in Google Cloud Console
+- In production behind a proxy, set `GOOGLE_REDIRECT_URI` to the public HTTPS callback URL
 - Check for:
   - http vs https
   - localhost vs 127.0.0.1
