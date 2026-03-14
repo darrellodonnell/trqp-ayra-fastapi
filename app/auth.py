@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # OAuth Configuration from environment variables
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-to-a-random-secret-key-in-production")
 
 # Optional bearer-token auth for admin APIs
@@ -45,6 +46,9 @@ if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         "Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET "
         "in your .env file to enable authentication."
     )
+
+if GOOGLE_REDIRECT_URI:
+    logger.info(f"Configured Google OAuth redirect URI override: {GOOGLE_REDIRECT_URI}")
 
 if not AUTHORIZED_EMAILS:
     logger.warning(
@@ -218,3 +222,11 @@ def get_authorized_emails() -> list:
     Get the list of authorized email addresses
     """
     return AUTHORIZED_EMAILS.copy()
+
+
+def get_google_redirect_uri() -> Optional[str]:
+    """
+    Return the configured Google OAuth callback URI override, if present.
+    """
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", GOOGLE_REDIRECT_URI).strip()
+    return redirect_uri or None

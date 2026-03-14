@@ -12,6 +12,7 @@ from app.auth import (
     GOOGLE_CLIENT_SECRET,
     AUTHORIZED_EMAILS,
     SECRET_KEY,
+    get_google_redirect_uri,
     is_auth_configured
 )
 
@@ -77,11 +78,19 @@ if all(checks):
     print("Redirect URIs to configure in Google Cloud Console:")
     print("  - http://localhost:8000/admin/auth/callback")
 
-    import os
-    external_url = os.getenv('EXTERNAL_URL', '').strip()
-    if external_url:
-        callback_url = external_url.rstrip('/') + '/admin/auth/callback'
-        print(f"  - {callback_url}")
+    google_redirect_uri = get_google_redirect_uri()
+    if google_redirect_uri:
+        print(f"  - {google_redirect_uri}")
+        print()
+        print("GOOGLE_REDIRECT_URI is set and will be used for OAuth callbacks.")
+    else:
+        import os
+        external_url = os.getenv('EXTERNAL_URL', '').strip()
+        if external_url:
+            callback_url = external_url.rstrip('/') + '/admin/auth/callback'
+            print(f"  - {callback_url}")
+        print()
+        print("GOOGLE_REDIRECT_URI is not set; the app will use request.url_for(...) at runtime.")
 else:
     print("❌ CONFIGURATION INCOMPLETE")
     print()
